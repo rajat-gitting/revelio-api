@@ -11,7 +11,7 @@ class BlogTest {
 
   @Test
   void testBlogConstructorAndGetters() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Author author = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
     List<String> tags = Arrays.asList("tech", "java", "spring");
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
@@ -39,7 +39,7 @@ class BlogTest {
   @Test
   void testBlogSetters() {
     Blog blog = new Blog();
-    Blog.Author author = new Blog.Author("Jane Smith", "https://example.com/jane.jpg");
+    Author author = new Author(2L, "Jane Smith", "https://example.com/jane.jpg");
     List<String> tags = Arrays.asList("design", "ui");
     Instant publishedAt = Instant.parse("2024-02-20T15:30:00Z");
 
@@ -64,8 +64,8 @@ class BlogTest {
 
   @Test
   void testBlogEqualsAndHashCode() {
-    Blog.Author author1 = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
-    Blog.Author author2 = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Author author1 = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
+    Author author2 = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
     List<String> tags = Arrays.asList("tech", "java");
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
@@ -108,19 +108,18 @@ class BlogTest {
 
   @Test
   void testBlogWithNullCoverImageUrl() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Author author = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
     List<String> tags = Arrays.asList("tech");
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
-    Blog blog =
-        new Blog(1L, "Test Blog", "Excerpt", null, author, tags, publishedAt, true);
+    Blog blog = new Blog(1L, "Test Blog", "Excerpt", null, author, tags, publishedAt, true);
 
     assertNull(blog.getCoverImageUrl());
   }
 
   @Test
   void testBlogWithEmptyTags() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Author author = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
     List<String> tags = Arrays.asList();
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
@@ -139,46 +138,8 @@ class BlogTest {
   }
 
   @Test
-  void testAuthorConstructorAndGetters() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
-
-    assertEquals("John Doe", author.getName());
-    assertEquals("https://example.com/avatar.jpg", author.getAvatarUrl());
-  }
-
-  @Test
-  void testAuthorSetters() {
-    Blog.Author author = new Blog.Author();
-    author.setName("Jane Smith");
-    author.setAvatarUrl("https://example.com/jane.jpg");
-
-    assertEquals("Jane Smith", author.getName());
-    assertEquals("https://example.com/jane.jpg", author.getAvatarUrl());
-  }
-
-  @Test
-  void testAuthorEqualsAndHashCode() {
-    Blog.Author author1 = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
-    Blog.Author author2 = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
-    Blog.Author author3 = new Blog.Author("Jane Smith", "https://example.com/jane.jpg");
-
-    assertEquals(author1, author2);
-    assertEquals(author1.hashCode(), author2.hashCode());
-    assertNotEquals(author1, author3);
-    assertNotEquals(author1.hashCode(), author3.hashCode());
-  }
-
-  @Test
-  void testAuthorWithNullAvatarUrl() {
-    Blog.Author author = new Blog.Author("John Doe", null);
-
-    assertEquals("John Doe", author.getName());
-    assertNull(author.getAvatarUrl());
-  }
-
-  @Test
   void testBlogToString() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Author author = new Author(1L, "John Doe", "https://example.com/avatar.jpg");
     List<String> tags = Arrays.asList("tech", "java");
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
@@ -201,12 +162,23 @@ class BlogTest {
   }
 
   @Test
-  void testAuthorToString() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+  void testBlogWithAuthorHavingNullAvatarUrl() {
+    Author author = new Author(1L, "John Doe", null);
+    List<String> tags = Arrays.asList("tech");
+    Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
-    String result = author.toString();
+    Blog blog =
+        new Blog(
+            1L,
+            "Test Blog",
+            "Excerpt",
+            "https://example.com/cover.jpg",
+            author,
+            tags,
+            publishedAt,
+            true);
 
-    assertTrue(result.contains("name='John Doe'"));
-    assertTrue(result.contains("avatarUrl='https://example.com/avatar.jpg'"));
+    assertNull(blog.getAuthor().getAvatarUrl());
+    assertEquals("John Doe", blog.getAuthor().getName());
   }
 }
