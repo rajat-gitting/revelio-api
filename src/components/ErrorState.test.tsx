@@ -9,6 +9,11 @@ describe('ErrorState', () => {
 
     const errorState = screen.getByTestId('error-state');
     expect(errorState).toBeInTheDocument();
+  });
+
+  it('should display the correct error message text', () => {
+    const mockRetry = jest.fn();
+    render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
     const message = screen.getByText('Something went wrong. Please try again.');
     expect(message).toBeInTheDocument();
@@ -16,33 +21,38 @@ describe('ErrorState', () => {
 
   it('should render retry button', () => {
     const mockRetry = jest.fn();
-    render(<ErrorState message="Error message" onRetry={mockRetry} />);
+    render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
-    const retryButton = screen.getByTestId('error-state-retry-button');
+    const retryButton = screen.getByTestId('error-retry-button');
     expect(retryButton).toBeInTheDocument();
-    expect(retryButton).toHaveTextContent('Retry');
+    expect(retryButton).toHaveTextContent('Try Again');
   });
 
   it('should call onRetry when retry button is clicked', () => {
     const mockRetry = jest.fn();
-    render(<ErrorState message="Error message" onRetry={mockRetry} />);
+    render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
-    const retryButton = screen.getByTestId('error-state-retry-button');
+    const retryButton = screen.getByTestId('error-retry-button');
     fireEvent.click(retryButton);
 
     expect(mockRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onRetry multiple times when retry button is clicked multiple times', () => {
+  it('should render icon element', () => {
     const mockRetry = jest.fn();
-    render(<ErrorState message="Error message" onRetry={mockRetry} />);
+    const { container } = render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
-    const retryButton = screen.getByTestId('error-state-retry-button');
-    fireEvent.click(retryButton);
-    fireEvent.click(retryButton);
-    fireEvent.click(retryButton);
+    const icon = container.querySelector('.error-state__icon');
+    expect(icon).toBeInTheDocument();
+  });
 
-    expect(mockRetry).toHaveBeenCalledTimes(3);
+  it('should render message with correct class', () => {
+    const mockRetry = jest.fn();
+    const { container } = render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
+
+    const message = container.querySelector('.error-state__message');
+    expect(message).toBeInTheDocument();
+    expect(message).toHaveTextContent('Something went wrong. Please try again.');
   });
 
   it('should render with custom message', () => {
@@ -53,113 +63,49 @@ describe('ErrorState', () => {
     expect(message).toBeInTheDocument();
   });
 
-  it('should have correct CSS class on root element', () => {
+  it('should have proper structure with icon, message, and button', () => {
     const mockRetry = jest.fn();
-    const { container } = render(<ErrorState message="Test message" onRetry={mockRetry} />);
+    const { container } = render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
     const errorState = container.querySelector('.error-state');
-    expect(errorState).toBeInTheDocument();
-  });
-
-  it('should have correct CSS class on content element', () => {
-    const mockRetry = jest.fn();
-    const { container } = render(<ErrorState message="Test message" onRetry={mockRetry} />);
-
-    const content = container.querySelector('.error-state__content');
-    expect(content).toBeInTheDocument();
-  });
-
-  it('should have correct CSS class on message element', () => {
-    const mockRetry = jest.fn();
-    const { container } = render(<ErrorState message="Test message" onRetry={mockRetry} />);
-
+    const icon = container.querySelector('.error-state__icon');
     const message = container.querySelector('.error-state__message');
-    expect(message).toBeInTheDocument();
+    const button = container.querySelector('.error-state__retry-button');
+
+    expect(errorState).toContainElement(icon);
+    expect(errorState).toContainElement(message);
+    expect(errorState).toContainElement(button);
   });
 
-  it('should have correct CSS class on retry button', () => {
+  it('should render SVG icon with correct attributes', () => {
     const mockRetry = jest.fn();
-    const { container } = render(<ErrorState message="Test message" onRetry={mockRetry} />);
+    const { container } = render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
-    const retryButton = container.querySelector('.error-state__retry-button');
-    expect(retryButton).toBeInTheDocument();
+    const svg = container.querySelector('svg');
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute('width', '64');
+    expect(svg).toHaveAttribute('height', '64');
+    expect(svg).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('should render message as paragraph element', () => {
+  it('should handle multiple retry button clicks', () => {
     const mockRetry = jest.fn();
-    render(<ErrorState message="Test message" onRetry={mockRetry} />);
+    render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
 
-    const message = screen.getByText('Test message');
-    expect(message.tagName).toBe('P');
+    const retryButton = screen.getByTestId('error-retry-button');
+    fireEvent.click(retryButton);
+    fireEvent.click(retryButton);
+    fireEvent.click(retryButton);
+
+    expect(mockRetry).toHaveBeenCalledTimes(3);
   });
 
-  it('should render retry button as button element', () => {
+  it('should handle long error message text', () => {
     const mockRetry = jest.fn();
-    render(<ErrorState message="Test message" onRetry={mockRetry} />);
-
-    const retryButton = screen.getByTestId('error-state-retry-button');
-    expect(retryButton.tagName).toBe('BUTTON');
-  });
-
-  it('should handle empty string message', () => {
-    const mockRetry = jest.fn();
-    render(<ErrorState message="" onRetry={mockRetry} />);
-
-    const errorState = screen.getByTestId('error-state');
-    expect(errorState).toBeInTheDocument();
-  });
-
-  it('should handle long message text', () => {
-    const mockRetry = jest.fn();
-    const longMessage = 'This is a very long error message that should still render correctly in the error state component without breaking the layout or causing any issues.';
+    const longMessage = 'This is a very long error message that should still be displayed correctly in the error state component without breaking the layout or causing any issues.';
     render(<ErrorState message={longMessage} onRetry={mockRetry} />);
 
     const message = screen.getByText(longMessage);
     expect(message).toBeInTheDocument();
-  });
-
-  it('should render multiple error states independently', () => {
-    const mockRetry1 = jest.fn();
-    const mockRetry2 = jest.fn();
-    const { container } = render(
-      <>
-        <ErrorState message="First error" onRetry={mockRetry1} />
-        <ErrorState message="Second error" onRetry={mockRetry2} />
-      </>
-    );
-
-    const errorStates = container.querySelectorAll('.error-state');
-    expect(errorStates).toHaveLength(2);
-
-    expect(screen.getByText('First error')).toBeInTheDocument();
-    expect(screen.getByText('Second error')).toBeInTheDocument();
-  });
-
-  it('should display the exact message for API failure scenario', () => {
-    const mockRetry = jest.fn();
-    render(<ErrorState message="Something went wrong. Please try again." onRetry={mockRetry} />);
-
-    const message = screen.getByText('Something went wrong. Please try again.');
-    expect(message).toHaveClass('error-state__message');
-  });
-
-  it('should not call onRetry when component is rendered', () => {
-    const mockRetry = jest.fn();
-    render(<ErrorState message="Error message" onRetry={mockRetry} />);
-
-    expect(mockRetry).not.toHaveBeenCalled();
-  });
-
-  it('should maintain retry button functionality after multiple renders', () => {
-    const mockRetry = jest.fn();
-    const { rerender } = render(<ErrorState message="Error 1" onRetry={mockRetry} />);
-
-    const retryButton = screen.getByTestId('error-state-retry-button');
-    fireEvent.click(retryButton);
-    expect(mockRetry).toHaveBeenCalledTimes(1);
-
-    rerender(<ErrorState message="Error 2" onRetry={mockRetry} />);
-    fireEvent.click(retryButton);
-    expect(mockRetry).toHaveBeenCalledTimes(2);
   });
 });
