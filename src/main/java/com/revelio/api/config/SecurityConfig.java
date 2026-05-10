@@ -23,6 +23,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        "/api/blogs",
+                        "/api/blogs/**",
                         "/health",
                         "/ping",
                         "/actuator/health",
