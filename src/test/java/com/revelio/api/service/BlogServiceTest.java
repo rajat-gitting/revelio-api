@@ -2,9 +2,13 @@ package com.revelio.api.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.revelio.api.dto.BlogDto;
+import com.revelio.api.dto.BlogListRequest;
+import com.revelio.api.dto.BlogListResponse;
 import com.revelio.api.model.Blog;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,10 +20,9 @@ class BlogServiceTest {
 
   @BeforeEach
   void setUp() {
-    blogService = new BlogService();
-
     Blog.Author author1 = new Blog.Author("John Doe", "https://example.com/john.jpg");
     Blog.Author author2 = new Blog.Author("Jane Smith", "https://example.com/jane.jpg");
+    Blog.Author author3 = new Blog.Author("Bob Wilson", null);
 
     testBlogs =
         Arrays.asList(
@@ -39,240 +42,262 @@ class BlogServiceTest {
                 "https://example.com/cover2.jpg",
                 author2,
                 Arrays.asList("design"),
-                Instant.parse("2024-01-16T10:00:00Z"),
+                Instant.parse("2024-01-20T10:00:00Z"),
                 false),
             new Blog(
                 3L,
                 "Published Post 2",
                 "Excerpt 3",
-                "https://example.com/cover3.jpg",
-                author1,
-                Arrays.asList("spring"),
-                Instant.parse("2024-01-17T10:00:00Z"),
+                null,
+                author3,
+                Arrays.asList("ui", "ux", "design"),
+                Instant.parse("2024-01-25T10:00:00Z"),
                 true),
             new Blog(
                 4L,
                 "Published Post 3",
                 "Excerpt 4",
                 "https://example.com/cover4.jpg",
-                author2,
-                Arrays.asList("kotlin"),
-                Instant.parse("2024-01-18T10:00:00Z"),
-                true),
-            new Blog(
-                5L,
-                "Unpublished Post 2",
-                "Excerpt 5",
-                "https://example.com/cover5.jpg",
                 author1,
-                Arrays.asList("python"),
-                Instant.parse("2024-01-19T10:00:00Z"),
-                false),
-            new Blog(
-                6L,
-                "Published Post 4",
-                "Excerpt 6",
-                "https://example.com/cover6.jpg",
-                author2,
-                Arrays.asList("react"),
-                Instant.parse("2024-01-20T10:00:00Z"),
+                Arrays.asList("backend"),
+                Instant.parse("2024-01-10T10:00:00Z"),
                 true));
+
+    blogService = new BlogService(testBlogs);
   }
 
   @Test
-  void testGetPublishedBlogsReturnsOnlyPublishedPosts() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 10);
+  void testFilterPublishedPostsReturnsOnlyPublishedBlogs() {
+    List<Blog> publishedBlogs = blogService.filterPublishedPosts(testBlogs);
 
-    assertEquals(4, result.size());
-    assertTrue(result.stream().allMatch(Blog::isPublished));
+    assertEquals(3, publishedBlogs.size());
+    assertTrue(publishedBlogs.stream().allMatch(Blog::isPublished));
   }
 
   @Test
-  void testGetPublishedBlogsSortsByPublishedAtDescending() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 10);
-
-    assertEquals("Published Post 4", result.get(0).getTitle());
-    assertEquals("Published Post 3", result.get(1).getTitle());
-    assertEquals("Published Post 2", result.get(2).getTitle());
-    assertEquals("Published Post 1", result.get(3).getTitle());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithPaginationFirstPage() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 2);
-
-    assertEquals(2, result.size());
-    assertEquals("Published Post 4", result.get(0).getTitle());
-    assertEquals("Published Post 3", result.get(1).getTitle());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithPaginationSecondPage() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 1, 2);
-
-    assertEquals(2, result.size());
-    assertEquals("Published Post 2", result.get(0).getTitle());
-    assertEquals("Published Post 1", result.get(1).getTitle());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithPaginationLastPagePartial() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 1, 3);
-
-    assertEquals(1, result.size());
-    assertEquals("Published Post 1", result.get(0).getTitle());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithPaginationBeyondAvailable() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 5, 10);
-
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithEmptyList() {
-    List<Blog> result = blogService.getPublishedBlogs(Arrays.asList(), 0, 10);
-
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testGetPublishedBlogsWithNoPublishedPosts() {
-    List<Blog> unpublishedOnly =
+  void testFilterPublishedPostsWithNoPublishedBlogs() {
+    Blog.Author author = new Blog.Author("Test Author", "https://example.com/test.jpg");
+    List<Blog> unpublishedBlogs =
         Arrays.asList(
             new Blog(
                 1L,
                 "Unpublished 1",
                 "Excerpt",
-                null,
-                new Blog.Author("Author", null),
-                Arrays.asList(),
-                Instant.now(),
+                "https://example.com/cover.jpg",
+                author,
+                Arrays.asList("tech"),
+                Instant.parse("2024-01-15T10:00:00Z"),
                 false),
             new Blog(
                 2L,
                 "Unpublished 2",
                 "Excerpt",
-                null,
-                new Blog.Author("Author", null),
-                Arrays.asList(),
-                Instant.now(),
+                "https://example.com/cover.jpg",
+                author,
+                Arrays.asList("tech"),
+                Instant.parse("2024-01-16T10:00:00Z"),
                 false));
 
-    List<Blog> result = blogService.getPublishedBlogs(unpublishedOnly, 0, 10);
+    List<Blog> publishedBlogs = blogService.filterPublishedPosts(unpublishedBlogs);
 
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testGetPublishedBlogsThrowsExceptionForNegativePage() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> blogService.getPublishedBlogs(testBlogs, -1, 10));
-
-    assertEquals("Page number must be non-negative", exception.getMessage());
-  }
-
-  @Test
-  void testGetPublishedBlogsThrowsExceptionForZeroSize() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> blogService.getPublishedBlogs(testBlogs, 0, 0));
-
-    assertEquals("Page size must be positive", exception.getMessage());
-  }
-
-  @Test
-  void testGetPublishedBlogsThrowsExceptionForNegativeSize() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> blogService.getPublishedBlogs(testBlogs, 0, -5));
-
-    assertEquals("Page size must be positive", exception.getMessage());
-  }
-
-  @Test
-  void testFilterPublishedPostsReturnsOnlyPublished() {
-    List<Blog> result = blogService.filterPublishedPosts(testBlogs);
-
-    assertEquals(4, result.size());
-    assertTrue(result.stream().allMatch(Blog::isPublished));
+    assertTrue(publishedBlogs.isEmpty());
   }
 
   @Test
   void testFilterPublishedPostsWithEmptyList() {
-    List<Blog> result = blogService.filterPublishedPosts(Arrays.asList());
+    List<Blog> publishedBlogs = blogService.filterPublishedPosts(Collections.emptyList());
 
-    assertTrue(result.isEmpty());
+    assertTrue(publishedBlogs.isEmpty());
   }
 
   @Test
-  void testFilterPublishedPostsWithNoPublishedPosts() {
-    List<Blog> unpublishedOnly =
-        Arrays.asList(
-            new Blog(
-                1L,
-                "Unpublished 1",
-                "Excerpt",
-                null,
-                new Blog.Author("Author", null),
-                Arrays.asList(),
-                Instant.now(),
-                false));
+  void testGetPublishedBlogsReturnsSortedByPublishedAtDescending() {
+    BlogListRequest request = new BlogListRequest(0, 10);
 
-    List<Blog> result = blogService.filterPublishedPosts(unpublishedOnly);
+    BlogListResponse response = blogService.getPublishedBlogs(request);
 
-    assertTrue(result.isEmpty());
+    assertEquals(3, response.getBlogs().size());
+    assertEquals("Published Post 2", response.getBlogs().get(0).getTitle());
+    assertEquals("Published Post 1", response.getBlogs().get(1).getTitle());
+    assertEquals("Published Post 3", response.getBlogs().get(2).getTitle());
   }
 
   @Test
-  void testFilterPublishedPostsWithAllPublishedPosts() {
-    List<Blog> publishedOnly =
+  void testGetPublishedBlogsWithPagination() {
+    Blog.Author author = new Blog.Author("Test Author", "https://example.com/test.jpg");
+    List<Blog> manyBlogs = Arrays.asList(
+        new Blog(1L, "Post 1", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-25T10:00:00Z"), true),
+        new Blog(2L, "Post 2", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-24T10:00:00Z"), true),
+        new Blog(3L, "Post 3", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-23T10:00:00Z"), true),
+        new Blog(4L, "Post 4", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-22T10:00:00Z"), true),
+        new Blog(5L, "Post 5", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-21T10:00:00Z"), true),
+        new Blog(6L, "Post 6", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-20T10:00:00Z"), true),
+        new Blog(7L, "Post 7", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-19T10:00:00Z"), true),
+        new Blog(8L, "Post 8", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-18T10:00:00Z"), true),
+        new Blog(9L, "Post 9", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-17T10:00:00Z"), true),
+        new Blog(10L, "Post 10", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-16T10:00:00Z"), true),
+        new Blog(11L, "Post 11", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-15T10:00:00Z"), true),
+        new Blog(12L, "Post 12", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-14T10:00:00Z"), true)
+    );
+
+    BlogService service = new BlogService(manyBlogs);
+    BlogListRequest request = new BlogListRequest(0, 10);
+
+    BlogListResponse response = service.getPublishedBlogs(request);
+
+    assertEquals(10, response.getBlogs().size());
+    assertEquals(0, response.getPage());
+    assertEquals(10, response.getSize());
+    assertEquals(12, response.getTotalElements());
+    assertEquals(2, response.getTotalPages());
+    assertTrue(response.isHasMore());
+  }
+
+  @Test
+  void testGetPublishedBlogsSecondPage() {
+    Blog.Author author = new Blog.Author("Test Author", "https://example.com/test.jpg");
+    List<Blog> manyBlogs = Arrays.asList(
+        new Blog(1L, "Post 1", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-25T10:00:00Z"), true),
+        new Blog(2L, "Post 2", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-24T10:00:00Z"), true),
+        new Blog(3L, "Post 3", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-23T10:00:00Z"), true),
+        new Blog(4L, "Post 4", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-22T10:00:00Z"), true),
+        new Blog(5L, "Post 5", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-21T10:00:00Z"), true),
+        new Blog(6L, "Post 6", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-20T10:00:00Z"), true),
+        new Blog(7L, "Post 7", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-19T10:00:00Z"), true),
+        new Blog(8L, "Post 8", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-18T10:00:00Z"), true),
+        new Blog(9L, "Post 9", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-17T10:00:00Z"), true),
+        new Blog(10L, "Post 10", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-16T10:00:00Z"), true),
+        new Blog(11L, "Post 11", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-15T10:00:00Z"), true),
+        new Blog(12L, "Post 12", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-14T10:00:00Z"), true)
+    );
+
+    BlogService service = new BlogService(manyBlogs);
+    BlogListRequest request = new BlogListRequest(1, 10);
+
+    BlogListResponse response = service.getPublishedBlogs(request);
+
+    assertEquals(2, response.getBlogs().size());
+    assertEquals(1, response.getPage());
+    assertEquals(10, response.getSize());
+    assertEquals(12, response.getTotalElements());
+    assertEquals(2, response.getTotalPages());
+    assertFalse(response.isHasMore());
+  }
+
+  @Test
+  void testGetPublishedBlogsWhenNoMorePostsExist() {
+    BlogListRequest request = new BlogListRequest(0, 10);
+
+    BlogListResponse response = blogService.getPublishedBlogs(request);
+
+    assertEquals(3, response.getBlogs().size());
+    assertEquals(0, response.getPage());
+    assertEquals(10, response.getSize());
+    assertEquals(3, response.getTotalElements());
+    assertEquals(1, response.getTotalPages());
+    assertFalse(response.isHasMore());
+  }
+
+  @Test
+  void testGetPublishedBlogsWithPageBeyondTotalPages() {
+    BlogListRequest request = new BlogListRequest(5, 10);
+
+    BlogListResponse response = blogService.getPublishedBlogs(request);
+
+    assertTrue(response.getBlogs().isEmpty());
+    assertEquals(5, response.getPage());
+    assertEquals(10, response.getSize());
+    assertEquals(3, response.getTotalElements());
+    assertEquals(1, response.getTotalPages());
+    assertFalse(response.isHasMore());
+  }
+
+  @Test
+  void testGetPublishedBlogsWithEmptyRepository() {
+    BlogService emptyService = new BlogService(Collections.emptyList());
+    BlogListRequest request = new BlogListRequest(0, 10);
+
+    BlogListResponse response = emptyService.getPublishedBlogs(request);
+
+    assertTrue(response.getBlogs().isEmpty());
+    assertEquals(0, response.getPage());
+    assertEquals(10, response.getSize());
+    assertEquals(0, response.getTotalElements());
+    assertEquals(0, response.getTotalPages());
+    assertFalse(response.isHasMore());
+  }
+
+  @Test
+  void testGetPublishedBlogsConvertsToDto() {
+    BlogListRequest request = new BlogListRequest(0, 10);
+
+    BlogListResponse response = blogService.getPublishedBlogs(request);
+
+    BlogDto firstDto = response.getBlogs().get(0);
+    assertEquals(3L, firstDto.getId());
+    assertEquals("Published Post 2", firstDto.getTitle());
+    assertEquals("Excerpt 3", firstDto.getExcerpt());
+    assertNull(firstDto.getCoverImageUrl());
+    assertEquals("Bob Wilson", firstDto.getAuthor().getName());
+    assertNull(firstDto.getAuthor().getAvatarUrl());
+    assertEquals(Arrays.asList("ui", "ux", "design"), firstDto.getTags());
+    assertEquals(Instant.parse("2024-01-25T10:00:00Z"), firstDto.getPublishedAt());
+  }
+
+  @Test
+  void testGetPublishedBlogsWithNullAuthor() {
+    Blog.Author author = new Blog.Author("Test Author", "https://example.com/test.jpg");
+    List<Blog> blogsWithNullAuthor =
         Arrays.asList(
             new Blog(
                 1L,
-                "Published 1",
+                "Post with null author",
                 "Excerpt",
+                "https://example.com/cover.jpg",
                 null,
-                new Blog.Author("Author", null),
-                Arrays.asList(),
-                Instant.now(),
-                true),
-            new Blog(
-                2L,
-                "Published 2",
-                "Excerpt",
-                null,
-                new Blog.Author("Author", null),
-                Arrays.asList(),
-                Instant.now(),
+                Arrays.asList("tech"),
+                Instant.parse("2024-01-15T10:00:00Z"),
                 true));
 
-    List<Blog> result = blogService.filterPublishedPosts(publishedOnly);
+    BlogService service = new BlogService(blogsWithNullAuthor);
+    BlogListRequest request = new BlogListRequest(0, 10);
 
-    assertEquals(2, result.size());
+    BlogListResponse response = service.getPublishedBlogs(request);
+
+    assertEquals(1, response.getBlogs().size());
+    assertNull(response.getBlogs().get(0).getAuthor());
   }
 
   @Test
-  void testGetPublishedBlogsPageZeroStartsAtBeginning() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 1);
+  void testGetPublishedBlogsPageStartsAtZero() {
+    BlogListRequest request = new BlogListRequest(0, 10);
 
-    assertEquals(1, result.size());
-    assertEquals("Published Post 4", result.get(0).getTitle());
+    BlogListResponse response = blogService.getPublishedBlogs(request);
+
+    assertEquals(0, response.getPage());
   }
 
   @Test
-  void testGetPublishedBlogsWithSizeEqualToTotalPublished() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 4);
+  void testGetPublishedBlogsWithCustomPageSize() {
+    Blog.Author author = new Blog.Author("Test Author", "https://example.com/test.jpg");
+    List<Blog> manyBlogs = Arrays.asList(
+        new Blog(1L, "Post 1", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-25T10:00:00Z"), true),
+        new Blog(2L, "Post 2", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-24T10:00:00Z"), true),
+        new Blog(3L, "Post 3", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-23T10:00:00Z"), true),
+        new Blog(4L, "Post 4", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-22T10:00:00Z"), true),
+        new Blog(5L, "Post 5", "Excerpt", "https://example.com/cover.jpg", author, Arrays.asList("tech"), Instant.parse("2024-01-21T10:00:00Z"), true)
+    );
 
-    assertEquals(4, result.size());
-  }
+    BlogService service = new BlogService(manyBlogs);
+    BlogListRequest request = new BlogListRequest(0, 3);
 
-  @Test
-  void testGetPublishedBlogsWithSizeGreaterThanTotalPublished() {
-    List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 100);
+    BlogListResponse response = service.getPublishedBlogs(request);
 
-    assertEquals(4, result.size());
+    assertEquals(3, response.getBlogs().size());
+    assertEquals(0, response.getPage());
+    assertEquals(3, response.getSize());
+    assertEquals(5, response.getTotalElements());
+    assertEquals(2, response.getTotalPages());
+    assertTrue(response.isHasMore());
   }
 }
