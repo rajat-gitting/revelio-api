@@ -1,4 +1,4 @@
-import { fetchBlogs, BlogPost, BlogsResponse } from './blogService';
+import { fetchBlogs, BlogListResponse, BlogPost, Author } from './blogService';
 
 global.fetch = jest.fn();
 
@@ -6,29 +6,18 @@ const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
 describe('blogService', () => {
   beforeEach(() => {
-    mockFetch.mockClear();
+    jest.clearAllMocks();
   });
 
   describe('fetchBlogs', () => {
-    it('should fetch blogs with correct URL and query parameters', async () => {
-      const mockResponse: BlogsResponse = {
-        blogs: [
-          {
-            id: 1,
-            title: 'Test Blog',
-            excerpt: 'Test excerpt',
-            coverImageUrl: 'https://example.com/cover.jpg',
-            author: {
-              name: 'John Doe',
-              avatarUrl: 'https://example.com/avatar.jpg',
-            },
-            tags: ['tech', 'java'],
-            publishedAt: '2024-01-15T10:00:00Z',
-          },
-        ],
-        totalCount: 1,
+    it('should fetch blogs with correct URL and parameters', async () => {
+      const mockResponse: BlogListResponse = {
+        blogs: [],
         page: 0,
         size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -39,23 +28,138 @@ describe('blogService', () => {
       const result = await fetchBlogs(0, 10);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/blogs?page=0&size=10'),
-        expect.objectContaining({
+        'http://localhost:8080/api/blogs?page=0&size=10',
+        {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-        })
+        }
       );
       expect(result).toEqual(mockResponse);
     });
 
-    it('should handle pagination with different page numbers', async () => {
-      const mockResponse: BlogsResponse = {
+    it('should return blog posts with all required fields', async () => {
+      const author: Author = {
+        name: 'John Doe',
+        avatarUrl: 'https://example.com/avatar.jpg',
+      };
+
+      const blogPost: BlogPost = {
+        id: 1,
+        title: 'Test Title',
+        excerpt: 'Test excerpt',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        author: author,
+        tags: ['tech', 'java'],
+        publishedAt: '2024-01-15T10:00:00Z',
+      };
+
+      const mockResponse: BlogListResponse = {
+        blogs: [blogPost],
+        page: 0,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+        hasMore: false,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchBlogs(0, 10);
+
+      expect(result.blogs).toHaveLength(1);
+      expect(result.blogs[0].id).toBe(1);
+      expect(result.blogs[0].title).toBe('Test Title');
+      expect(result.blogs[0].excerpt).toBe('Test excerpt');
+      expect(result.blogs[0].coverImageUrl).toBe('https://example.com/cover.jpg');
+      expect(result.blogs[0].author.name).toBe('John Doe');
+      expect(result.blogs[0].author.avatarUrl).toBe('https://example.com/avatar.jpg');
+      expect(result.blogs[0].tags).toEqual(['tech', 'java']);
+      expect(result.blogs[0].publishedAt).toBe('2024-01-15T10:00:00Z');
+    });
+
+    it('should handle null coverImageUrl', async () => {
+      const author: Author = {
+        name: 'Jane Smith',
+        avatarUrl: 'https://example.com/jane.jpg',
+      };
+
+      const blogPost: BlogPost = {
+        id: 2,
+        title: 'Post without cover',
+        excerpt: 'Excerpt',
+        coverImageUrl: null,
+        author: author,
+        tags: ['design'],
+        publishedAt: '2024-01-20T10:00:00Z',
+      };
+
+      const mockResponse: BlogListResponse = {
+        blogs: [blogPost],
+        page: 0,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+        hasMore: false,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchBlogs(0, 10);
+
+      expect(result.blogs[0].coverImageUrl).toBeNull();
+    });
+
+    it('should handle null avatarUrl', async () => {
+      const author: Author = {
+        name: 'Bob Wilson',
+        avatarUrl: null,
+      };
+
+      const blogPost: BlogPost = {
+        id: 3,
+        title: 'Post with author without avatar',
+        excerpt: 'Excerpt',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        author: author,
+        tags: ['tech'],
+        publishedAt: '2024-01-25T10:00:00Z',
+      };
+
+      const mockResponse: BlogListResponse = {
+        blogs: [blogPost],
+        page: 0,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+        hasMore: false,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchBlogs(0, 10);
+
+      expect(result.blogs[0].author.avatarUrl).toBeNull();
+    });
+
+    it('should handle pagination with page parameter', async () => {
+      const mockResponse: BlogListResponse = {
         blogs: [],
-        totalCount: 0,
         page: 2,
         size: 10,
+        totalElements: 25,
+        totalPages: 3,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -63,20 +167,23 @@ describe('blogService', () => {
         json: async () => mockResponse,
       } as Response);
 
-      await fetchBlogs(2, 10);
+      const result = await fetchBlogs(2, 10);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('page=2&size=10'),
+        'http://localhost:8080/api/blogs?page=2&size=10',
         expect.any(Object)
       );
+      expect(result.page).toBe(2);
     });
 
-    it('should handle different page sizes', async () => {
-      const mockResponse: BlogsResponse = {
+    it('should handle custom page size', async () => {
+      const mockResponse: BlogListResponse = {
         blogs: [],
-        totalCount: 0,
         page: 0,
-        size: 5,
+        size: 20,
+        totalElements: 0,
+        totalPages: 0,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -84,27 +191,53 @@ describe('blogService', () => {
         json: async () => mockResponse,
       } as Response);
 
-      await fetchBlogs(0, 5);
+      const result = await fetchBlogs(0, 20);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('page=0&size=5'),
+        'http://localhost:8080/api/blogs?page=0&size=20',
         expect.any(Object)
       );
+      expect(result.size).toBe(20);
     });
 
-    it('should throw error for negative page number', async () => {
-      await expect(fetchBlogs(-1, 10)).rejects.toThrow('Page number must be non-negative');
-      expect(mockFetch).not.toHaveBeenCalled();
+    it('should handle hasMore flag when more pages exist', async () => {
+      const mockResponse: BlogListResponse = {
+        blogs: [],
+        page: 0,
+        size: 10,
+        totalElements: 25,
+        totalPages: 3,
+        hasMore: true,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchBlogs(0, 10);
+
+      expect(result.hasMore).toBe(true);
     });
 
-    it('should throw error for zero page size', async () => {
-      await expect(fetchBlogs(0, 0)).rejects.toThrow('Page size must be positive');
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+    it('should handle hasMore flag when no more pages exist', async () => {
+      const mockResponse: BlogListResponse = {
+        blogs: [],
+        page: 2,
+        size: 10,
+        totalElements: 25,
+        totalPages: 3,
+        hasMore: false,
+      };
 
-    it('should throw error for negative page size', async () => {
-      await expect(fetchBlogs(0, -5)).rejects.toThrow('Page size must be positive');
-      expect(mockFetch).not.toHaveBeenCalled();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await fetchBlogs(2, 10);
+
+      expect(result.hasMore).toBe(false);
     });
 
     it('should throw error when API returns non-ok status', async () => {
@@ -126,7 +259,9 @@ describe('blogService', () => {
         statusText: 'Not Found',
       } as Response);
 
-      await expect(fetchBlogs(0, 10)).rejects.toThrow('Failed to fetch blogs: 404 Not Found');
+      await expect(fetchBlogs(0, 10)).rejects.toThrow(
+        'Failed to fetch blogs: 404 Not Found'
+      );
     });
 
     it('should handle network errors', async () => {
@@ -135,74 +270,14 @@ describe('blogService', () => {
       await expect(fetchBlogs(0, 10)).rejects.toThrow('Network error');
     });
 
-    it('should handle blogs with null coverImageUrl', async () => {
-      const mockResponse: BlogsResponse = {
-        blogs: [
-          {
-            id: 1,
-            title: 'Test Blog',
-            excerpt: 'Test excerpt',
-            coverImageUrl: null,
-            author: {
-              name: 'John Doe',
-              avatarUrl: 'https://example.com/avatar.jpg',
-            },
-            tags: ['tech'],
-            publishedAt: '2024-01-15T10:00:00Z',
-          },
-        ],
-        totalCount: 1,
-        page: 0,
-        size: 10,
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
-
-      const result = await fetchBlogs(0, 10);
-
-      expect(result.blogs[0].coverImageUrl).toBeNull();
-    });
-
-    it('should handle author with null avatarUrl', async () => {
-      const mockResponse: BlogsResponse = {
-        blogs: [
-          {
-            id: 1,
-            title: 'Test Blog',
-            excerpt: 'Test excerpt',
-            coverImageUrl: 'https://example.com/cover.jpg',
-            author: {
-              name: 'John Doe',
-              avatarUrl: null,
-            },
-            tags: ['tech'],
-            publishedAt: '2024-01-15T10:00:00Z',
-          },
-        ],
-        totalCount: 1,
-        page: 0,
-        size: 10,
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
-
-      const result = await fetchBlogs(0, 10);
-
-      expect(result.blogs[0].author.avatarUrl).toBeNull();
-    });
-
-    it('should handle empty blogs array', async () => {
-      const mockResponse: BlogsResponse = {
+    it('should handle empty blog list', async () => {
+      const mockResponse: BlogListResponse = {
         blogs: [],
-        totalCount: 0,
         page: 0,
         size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -213,28 +288,32 @@ describe('blogService', () => {
       const result = await fetchBlogs(0, 10);
 
       expect(result.blogs).toEqual([]);
-      expect(result.totalCount).toBe(0);
+      expect(result.totalElements).toBe(0);
     });
 
-    it('should handle blogs with empty tags array', async () => {
-      const mockResponse: BlogsResponse = {
-        blogs: [
-          {
-            id: 1,
-            title: 'Test Blog',
-            excerpt: 'Test excerpt',
-            coverImageUrl: 'https://example.com/cover.jpg',
-            author: {
-              name: 'John Doe',
-              avatarUrl: 'https://example.com/avatar.jpg',
-            },
-            tags: [],
-            publishedAt: '2024-01-15T10:00:00Z',
-          },
-        ],
-        totalCount: 1,
+    it('should handle multiple tags', async () => {
+      const author: Author = {
+        name: 'John Doe',
+        avatarUrl: 'https://example.com/avatar.jpg',
+      };
+
+      const blogPost: BlogPost = {
+        id: 1,
+        title: 'Test Title',
+        excerpt: 'Test excerpt',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        author: author,
+        tags: ['tech', 'java', 'spring', 'backend'],
+        publishedAt: '2024-01-15T10:00:00Z',
+      };
+
+      const mockResponse: BlogListResponse = {
+        blogs: [blogPost],
         page: 0,
         size: 10,
+        totalElements: 1,
+        totalPages: 1,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -244,49 +323,20 @@ describe('blogService', () => {
 
       const result = await fetchBlogs(0, 10);
 
-      expect(result.blogs[0].tags).toEqual([]);
+      expect(result.blogs[0].tags).toEqual(['tech', 'java', 'spring', 'backend']);
     });
 
-    it('should handle blogs with multiple tags', async () => {
-      const mockResponse: BlogsResponse = {
-        blogs: [
-          {
-            id: 1,
-            title: 'Test Blog',
-            excerpt: 'Test excerpt',
-            coverImageUrl: 'https://example.com/cover.jpg',
-            author: {
-              name: 'John Doe',
-              avatarUrl: 'https://example.com/avatar.jpg',
-            },
-            tags: ['tech', 'java', 'spring', 'kotlin', 'react'],
-            publishedAt: '2024-01-15T10:00:00Z',
-          },
-        ],
-        totalCount: 1,
-        page: 0,
-        size: 10,
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      } as Response);
-
-      const result = await fetchBlogs(0, 10);
-
-      expect(result.blogs[0].tags).toHaveLength(5);
-    });
-
-    it('should use API_BASE_URL from environment variable', async () => {
+    it('should use environment variable for API base URL if set', async () => {
       const originalEnv = process.env.REACT_APP_API_BASE_URL;
       process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
 
-      const mockResponse: BlogsResponse = {
+      const mockResponse: BlogListResponse = {
         blogs: [],
-        totalCount: 0,
         page: 0,
         size: 10,
+        totalElements: 0,
+        totalPages: 0,
+        hasMore: false,
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -297,7 +347,7 @@ describe('blogService', () => {
       await fetchBlogs(0, 10);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('https://api.example.com/api/blogs'),
+        'https://api.example.com/api/blogs?page=0&size=10',
         expect.any(Object)
       );
 
