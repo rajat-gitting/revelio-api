@@ -17,7 +17,7 @@ export function SkeletonCard(): JSX.Element {
             <div className="skeleton-card__avatar" />
             <div className="skeleton-card__author-name" />
           </div>
-          <div className="skeleton-card__meta">
+          <div className="skeleton-card__tags">
             <div className="skeleton-card__tag" />
             <div className="skeleton-card__tag" />
             <div className="skeleton-card__tag" />
