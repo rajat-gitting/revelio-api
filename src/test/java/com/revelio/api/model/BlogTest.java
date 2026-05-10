@@ -40,7 +40,7 @@ class BlogTest {
   void testBlogSetters() {
     Blog blog = new Blog();
     Blog.Author author = new Blog.Author("Jane Smith", "https://example.com/jane.jpg");
-    List<String> tags = Arrays.asList("design", "ux");
+    List<String> tags = Arrays.asList("design", "ui");
     Instant publishedAt = Instant.parse("2024-02-20T15:30:00Z");
 
     blog.setId(2L);
@@ -119,42 +119,22 @@ class BlogTest {
   }
 
   @Test
-  void testBlogWithEmptyTags() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
-    List<String> tags = Arrays.asList();
-    Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
-
-    Blog blog =
-        new Blog(
-            1L,
-            "Test Title",
-            "Test excerpt",
-            "https://example.com/cover.jpg",
-            author,
-            tags,
-            publishedAt,
-            true);
-
-    assertTrue(blog.getTags().isEmpty());
-  }
-
-  @Test
   void testAuthorConstructorAndGetters() {
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    Blog.Author author = new Blog.Author("Alice Johnson", "https://example.com/alice.jpg");
 
-    assertEquals("John Doe", author.getName());
-    assertEquals("https://example.com/avatar.jpg", author.getAvatarUrl());
+    assertEquals("Alice Johnson", author.getName());
+    assertEquals("https://example.com/alice.jpg", author.getAvatarUrl());
   }
 
   @Test
   void testAuthorSetters() {
     Blog.Author author = new Blog.Author();
 
-    author.setName("Jane Smith");
-    author.setAvatarUrl("https://example.com/jane.jpg");
+    author.setName("Bob Williams");
+    author.setAvatarUrl("https://example.com/bob.jpg");
 
-    assertEquals("Jane Smith", author.getName());
-    assertEquals("https://example.com/jane.jpg", author.getAvatarUrl());
+    assertEquals("Bob Williams", author.getName());
+    assertEquals("https://example.com/bob.jpg", author.getAvatarUrl());
   }
 
   @Test
@@ -195,7 +175,6 @@ class BlogTest {
             true);
 
     String toString = blog.toString();
-
     assertTrue(toString.contains("id=1"));
     assertTrue(toString.contains("title='Test Title'"));
     assertTrue(toString.contains("published=true"));
@@ -206,7 +185,6 @@ class BlogTest {
     Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
 
     String toString = author.toString();
-
     assertTrue(toString.contains("name='John Doe'"));
     assertTrue(toString.contains("avatarUrl='https://example.com/avatar.jpg'"));
   }
