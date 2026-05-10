@@ -1,0 +1,33 @@
+# Gradle
+build/
+.gradle/
+**/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.local.properties
+
+# Java / build telemetry
+*.hprof
+hs_err_pid*.log
+
+# Coverage / reports
+jacocoTestReport/
+*.exec

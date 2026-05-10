@@ -1,0 +1,28 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: revelio-api
+
+management:
+  endpoints:
+    web:
+      # Health/info exposed for orchestration (full URL includes server.servlet.context-path).
+      exposure:
+        include: health,info
+
+# Springdoc: paths are relative to the servlet context (see server.servlet.context-path).
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  cors:
+    allow-all: false
+    allowed-origins:
+      - http://localhost:5173

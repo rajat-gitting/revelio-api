@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    root: WARN
+    com.revelio.api: INFO
+
+app:
+  cors:
+    allow-all: false
+    allowed-origins:
+      - https://app.revelio.com

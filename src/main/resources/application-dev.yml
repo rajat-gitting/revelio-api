@@ -1,0 +1,16 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    root: INFO
+    com.revelio.api: DEBUG
+    org.springframework.web: DEBUG
+
+app:
+  cors:
+    allow-all: true
+    allowed-origins:
+      - http://localhost:5173
