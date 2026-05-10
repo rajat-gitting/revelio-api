@@ -166,68 +166,6 @@ class BlogServiceTest {
   }
 
   @Test
-  void testFilterPublishedPostsReturnsOnlyPublished() {
-    List<Blog> result = blogService.filterPublishedPosts(testBlogs);
-
-    assertEquals(3, result.size());
-    assertTrue(result.stream().allMatch(Blog::isPublished));
-  }
-
-  @Test
-  void testFilterPublishedPostsWithEmptyList() {
-    List<Blog> result = blogService.filterPublishedPosts(Arrays.asList());
-
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testFilterPublishedPostsWithNoPublishedPosts() {
-    List<Blog> unpublishedOnly =
-        Arrays.asList(
-            new Blog(
-                1L,
-                "Unpublished",
-                "Excerpt",
-                "url",
-                new Author(1L, "Author", "avatar"),
-                Arrays.asList("tag"),
-                Instant.now(),
-                false));
-
-    List<Blog> result = blogService.filterPublishedPosts(unpublishedOnly);
-
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testFilterPublishedPostsWithAllPublishedPosts() {
-    List<Blog> publishedOnly =
-        Arrays.asList(
-            new Blog(
-                1L,
-                "Published 1",
-                "Excerpt",
-                "url",
-                new Author(1L, "Author", "avatar"),
-                Arrays.asList("tag"),
-                Instant.now(),
-                true),
-            new Blog(
-                2L,
-                "Published 2",
-                "Excerpt",
-                "url",
-                new Author(1L, "Author", "avatar"),
-                Arrays.asList("tag"),
-                Instant.now(),
-                true));
-
-    List<Blog> result = blogService.filterPublishedPosts(publishedOnly);
-
-    assertEquals(2, result.size());
-  }
-
-  @Test
   void testGetPublishedBlogsWithPageSizeLargerThanAvailable() {
     List<Blog> result = blogService.getPublishedBlogs(testBlogs, 0, 100);
 

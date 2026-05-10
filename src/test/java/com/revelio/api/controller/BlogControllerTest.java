@@ -1,7 +1,6 @@
 package com.revelio.api.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import com.revelio.api.dto.PagedBlogResponseDto;
 import com.revelio.api.model.Author;

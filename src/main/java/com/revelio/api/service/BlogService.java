@@ -22,8 +22,4 @@ public class BlogService {
         .limit(size)
         .collect(Collectors.toList());
   }
-
-  public List<Blog> filterPublishedPosts(List<Blog> posts) {
-    return posts.stream().filter(Blog::isPublished).collect(Collectors.toList());
-  }
 }

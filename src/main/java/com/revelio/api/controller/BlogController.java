@@ -29,33 +29,29 @@ public class BlogController {
   public ResponseEntity<PagedBlogResponseDto> getBlogs(
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
-    if (page < 0) {
+    try {
+      List<Blog> publishedBlogs = blogService.getPublishedBlogs(allBlogs, page, size);
+
+      List<BlogResponseDto> content =
+          publishedBlogs.stream().map(this::convertToDto).collect(Collectors.toList());
+
+      long totalPublished = allBlogs.stream().filter(Blog::isPublished).count();
+
+      int totalPages = (int) Math.ceil((double) totalPublished / size);
+      boolean hasMore = page < totalPages - 1;
+
+      PagedBlogResponseDto response =
+          new PagedBlogResponseDto(content, page, size, totalPublished, totalPages, hasMore);
+
+      return ResponseEntity.ok(response);
+    } catch (IllegalArgumentException e) {
       return ResponseEntity.badRequest().build();
     }
-
-    if (size <= 0) {
-      return ResponseEntity.badRequest().build();
-    }
-
-    List<Blog> publishedBlogs = blogService.getPublishedBlogs(allBlogs, page, size);
-
-    List<BlogResponseDto> content =
-        publishedBlogs.stream().map(this::convertToDto).collect(Collectors.toList());
-
-    long totalPublished =
-        allBlogs.stream().filter(blog -> blog.isPublished()).count();
-
-    int totalPages = (int) Math.ceil((double) totalPublished / size);
-    boolean hasMore = page < totalPages - 1;
-
-    PagedBlogResponseDto response =
-        new PagedBlogResponseDto(content, page, size, totalPublished, totalPages, hasMore);
-
-    return ResponseEntity.ok(response);
   }
 
   private BlogResponseDto convertToDto(Blog blog) {
-    AuthorDto authorDto = new AuthorDto(blog.getAuthor().getName(), blog.getAuthor().getAvatarUrl());
+    AuthorDto authorDto =
+        new AuthorDto(blog.getAuthor().getName(), blog.getAuthor().getAvatarUrl());
 
     return new BlogResponseDto(
         blog.getId(),
