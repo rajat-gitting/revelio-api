@@ -8,9 +8,28 @@ describe('EmptyState', () => {
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toBeInTheDocument();
+  });
+
+  it('should display the correct message text', () => {
+    render(<EmptyState message="No posts yet. Check back soon." />);
 
     const message = screen.getByText('No posts yet. Check back soon.');
     expect(message).toBeInTheDocument();
+  });
+
+  it('should render icon element', () => {
+    const { container } = render(<EmptyState message="No posts yet. Check back soon." />);
+
+    const icon = container.querySelector('.empty-state__icon');
+    expect(icon).toBeInTheDocument();
+  });
+
+  it('should render message with correct class', () => {
+    const { container } = render(<EmptyState message="No posts yet. Check back soon." />);
+
+    const message = container.querySelector('.empty-state__message');
+    expect(message).toBeInTheDocument();
+    expect(message).toHaveTextContent('No posts yet. Check back soon.');
   });
 
   it('should render with custom message', () => {
@@ -20,32 +39,25 @@ describe('EmptyState', () => {
     expect(message).toBeInTheDocument();
   });
 
-  it('should have correct CSS class on root element', () => {
-    const { container } = render(<EmptyState message="Test message" />);
+  it('should have proper structure with icon and message', () => {
+    const { container } = render(<EmptyState message="No posts yet. Check back soon." />);
 
     const emptyState = container.querySelector('.empty-state');
-    expect(emptyState).toBeInTheDocument();
-  });
-
-  it('should have correct CSS class on content element', () => {
-    const { container } = render(<EmptyState message="Test message" />);
-
-    const content = container.querySelector('.empty-state__content');
-    expect(content).toBeInTheDocument();
-  });
-
-  it('should have correct CSS class on message element', () => {
-    const { container } = render(<EmptyState message="Test message" />);
-
+    const icon = container.querySelector('.empty-state__icon');
     const message = container.querySelector('.empty-state__message');
-    expect(message).toBeInTheDocument();
+
+    expect(emptyState).toContainElement(icon);
+    expect(emptyState).toContainElement(message);
   });
 
-  it('should render message as paragraph element', () => {
-    render(<EmptyState message="Test message" />);
+  it('should render SVG icon with correct attributes', () => {
+    const { container } = render(<EmptyState message="No posts yet. Check back soon." />);
 
-    const message = screen.getByText('Test message');
-    expect(message.tagName).toBe('P');
+    const svg = container.querySelector('svg');
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute('width', '64');
+    expect(svg).toHaveAttribute('height', '64');
+    expect(svg).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('should handle empty string message', () => {
@@ -53,10 +65,13 @@ describe('EmptyState', () => {
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toBeInTheDocument();
+
+    const message = screen.queryByText(/.+/);
+    expect(message).not.toBeInTheDocument();
   });
 
   it('should handle long message text', () => {
-    const longMessage = 'This is a very long message that should still render correctly in the empty state component without breaking the layout or causing any issues.';
+    const longMessage = 'This is a very long message that should still be displayed correctly in the empty state component without breaking the layout or causing any issues.';
     render(<EmptyState message={longMessage} />);
 
     const message = screen.getByText(longMessage);
@@ -76,12 +91,5 @@ describe('EmptyState', () => {
 
     expect(screen.getByText('First message')).toBeInTheDocument();
     expect(screen.getByText('Second message')).toBeInTheDocument();
-  });
-
-  it('should display the exact message for no posts scenario', () => {
-    render(<EmptyState message="No posts yet. Check back soon." />);
-
-    const message = screen.getByText('No posts yet. Check back soon.');
-    expect(message).toHaveClass('empty-state__message');
   });
 });
