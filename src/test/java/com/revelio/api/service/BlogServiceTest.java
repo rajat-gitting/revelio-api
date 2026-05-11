@@ -187,62 +187,6 @@ class BlogServiceTest {
   }
 
   @Test
-  void testFilterPublishedPostsReturnsOnlyPublishedPosts() {
-    List<Blog> result = blogService.filterPublishedPosts(testBlogs);
-
-    assertEquals(3, result.size());
-    assertTrue(result.stream().allMatch(Blog::isPublished));
-  }
-
-  @Test
-  void testFilterPublishedPostsWithNullInput() {
-    List<Blog> result = blogService.filterPublishedPosts(null);
-
-    assertNotNull(result);
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testFilterPublishedPostsWithEmptyList() {
-    List<Blog> result = blogService.filterPublishedPosts(new ArrayList<>());
-
-    assertNotNull(result);
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testFilterPublishedPostsWithAllPublishedPosts() {
-    List<Blog> allPublished = new ArrayList<>();
-    Blog.Author author = new Blog.Author("John Doe", "https://example.com/john.jpg");
-
-    allPublished.add(
-        new Blog(
-            1L,
-            "Post 1",
-            "Excerpt 1",
-            "https://example.com/1.jpg",
-            author,
-            Arrays.asList("tech"),
-            Instant.parse("2024-01-15T10:00:00Z"),
-            true));
-
-    allPublished.add(
-        new Blog(
-            2L,
-            "Post 2",
-            "Excerpt 2",
-            "https://example.com/2.jpg",
-            author,
-            Arrays.asList("java"),
-            Instant.parse("2024-01-20T10:00:00Z"),
-            true));
-
-    List<Blog> result = blogService.filterPublishedPosts(allPublished);
-
-    assertEquals(2, result.size());
-  }
-
-  @Test
   void testBlogServiceConstructorWithNullRepository() {
     BlogService service = new BlogService(null);
     List<Blog> result = service.getPublishedBlogs(0, 10);

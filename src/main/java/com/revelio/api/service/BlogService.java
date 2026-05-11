@@ -38,13 +38,6 @@ public class BlogService {
     return new ArrayList<>(sorted.subList(start, Math.min(start + size, sorted.size())));
   }
 
-  public List<Blog> filterPublishedPosts(List<Blog> blogs) {
-    if (blogs == null) return new ArrayList<>();
-    return blogs.stream()
-        .filter(Blog::isPublished)
-        .collect(Collectors.toList());
-  }
-
   private static List<Blog> seedData() {
     Author alice = new Author("Alice Chen", null);
     Author bob = new Author("Bob Smith", null);
