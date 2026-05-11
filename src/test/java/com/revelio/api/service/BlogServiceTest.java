@@ -196,7 +196,7 @@ class BlogServiceTest {
   }
 
   @Test
-  void testBlogServiceDefaultConstructor() {
+  void testBlogServiceDefaultConstructorReturnsSeedData() {
     BlogService service = new BlogService();
     List<Blog> result = service.getPublishedBlogs(0, 10);
 
