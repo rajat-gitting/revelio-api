@@ -167,4 +167,22 @@ class BlogControllerTest {
     assertThrows(IllegalArgumentException.class, () -> blogController.getBlogs(0, 0));
     assertThrows(IllegalArgumentException.class, () -> blogController.getBlogs(0, -5));
   }
+
+  @Test
+  void testGetBlogsIncludesNewAIBlogPost() {
+    BlogService serviceWithSeedData = new BlogService();
+    BlogController controllerWithSeedData = new BlogController(serviceWithSeedData);
+
+    List<BlogResponseDto> result = controllerWithSeedData.getBlogs(0, 10);
+
+    BlogResponseDto aiBlog = result.stream()
+        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+        .findFirst()
+        .orElse(null);
+
+    assertNotNull(aiBlog);
+    assertEquals("Development in the era of AI", aiBlog.getTitle());
+    assertEquals("How AI tools are reshaping the way developers write, review, and ship code.", aiBlog.getExcerpt());
+    assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
+  }
 }
