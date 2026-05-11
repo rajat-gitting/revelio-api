@@ -257,7 +257,7 @@ class BlogServiceTest {
     List<Blog> result = service.getPublishedBlogs(0, 10);
 
     assertNotNull(result);
-    assertTrue(result.isEmpty());
+    assertFalse(result.isEmpty());
   }
 
   @Test
@@ -273,5 +273,45 @@ class BlogServiceTest {
     blogService.getPublishedBlogs(0, 10);
 
     assertEquals(originalSize, testBlogs.size());
+  }
+
+  @Test
+  void testSeedDataContainsNewAIBlogPost() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    Blog aiBlog = result.stream()
+        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+        .findFirst()
+        .orElse(null);
+
+    assertNotNull(aiBlog);
+    assertEquals(6L, aiBlog.getId());
+    assertEquals("Development in the era of AI", aiBlog.getTitle());
+    assertEquals("How AI tools are reshaping the way developers write, review, and ship code.", aiBlog.getExcerpt());
+    assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
+    assertTrue(aiBlog.isPublished());
+    assertNotNull(aiBlog.getAuthor());
+    assertEquals("Alice Chen", aiBlog.getAuthor().getName());
+  }
+
+  @Test
+  void testSeedDataContainsSixPublishedPosts() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    assertEquals(6, result.size());
+  }
+
+  @Test
+  void testNewAIBlogPostHasUniqueId() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    List<Long> ids = result.stream().map(Blog::getId).collect(java.util.stream.Collectors.toList());
+    long distinctCount = ids.stream().distinct().count();
+
+    assertEquals(ids.size(), distinctCount);
+    assertTrue(ids.contains(6L));
   }
 }
