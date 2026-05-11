@@ -257,7 +257,7 @@ class BlogServiceTest {
     List<Blog> result = service.getPublishedBlogs(0, 10);
 
     assertNotNull(result);
-    assertTrue(result.isEmpty());
+    assertFalse(result.isEmpty());
   }
 
   @Test
@@ -273,5 +273,51 @@ class BlogServiceTest {
     blogService.getPublishedBlogs(0, 10);
 
     assertEquals(originalSize, testBlogs.size());
+  }
+
+  @Test
+  void testSeedDataContainsAIBlogPost() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    Blog aiBlog = result.stream()
+        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+        .findFirst()
+        .orElse(null);
+
+    assertNotNull(aiBlog);
+    assertEquals("Development in the era of AI", aiBlog.getTitle());
+    assertEquals("How AI tools are reshaping the way developers write, review, and ship code.", aiBlog.getExcerpt());
+    assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
+    assertTrue(aiBlog.isPublished());
+    assertEquals(6L, aiBlog.getId());
+  }
+
+  @Test
+  void testSeedDataAIBlogPostHasCorrectAuthor() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    Blog aiBlog = result.stream()
+        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+        .findFirst()
+        .orElse(null);
+
+    assertNotNull(aiBlog);
+    assertNotNull(aiBlog.getAuthor());
+    assertEquals("Alice Chen", aiBlog.getAuthor().getName());
+  }
+
+  @Test
+  void testSeedDataAIBlogPostIsSortedCorrectly() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 10);
+
+    assertTrue(result.size() >= 2);
+    Blog firstPost = result.get(0);
+    Blog secondPost = result.get(1);
+
+    assertTrue(firstPost.getPublishedAt().isAfter(secondPost.getPublishedAt()) ||
+               firstPost.getPublishedAt().equals(secondPost.getPublishedAt()));
   }
 }
