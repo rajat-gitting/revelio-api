@@ -25,15 +25,16 @@ public class BlogController {
   private final BlogService blogService;
 
   @GetMapping
-  @Operation(summary = "List published blog posts", description = "Returns paginated published posts sorted by publishedAt descending.")
+  @Operation(
+      summary = "List published blog posts",
+      description = "Returns paginated published posts sorted by publishedAt descending.")
   public ResponseEntity<ApiResponse<List<BlogResponseDto>>> getBlogs(
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
     log.debug("GET /api/blogs page={} size={}", page, size);
-    List<BlogResponseDto> posts = blogService.getPublishedBlogs(page, size)
-        .stream()
-        .map(BlogResponseDto::fromBlog)
-        .collect(Collectors.toList());
+    List<BlogResponseDto> posts =
+        blogService.getPublishedBlogs(page, size).stream()
+            .map(BlogResponseDto::fromBlog)
+            .collect(Collectors.toList());
     return ResponseEntity.ok(ApiResponse.ok(posts));
   }
 }

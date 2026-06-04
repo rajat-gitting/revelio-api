@@ -2,6 +2,7 @@ package com.revelio.api.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
 import com.revelio.api.model.Blog;
 import com.revelio.api.service.BlogService;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 class BlogControllerTest {
 
@@ -62,9 +64,16 @@ class BlogControllerTest {
     blogController = new BlogController(blogService);
   }
 
+  private List<BlogResponseDto> getBlogs(BlogController controller, int page, int size) {
+    ResponseEntity<ApiResponse<List<BlogResponseDto>>> response = controller.getBlogs(page, size);
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    return response.getBody().getData();
+  }
+
   @Test
   void testGetBlogsReturnsPublishedPostsOnly() {
-    List<BlogResponseDto> result = blogController.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
 
     assertEquals(2, result.size());
     assertEquals(3L, result.get(0).getId());
@@ -73,7 +82,7 @@ class BlogControllerTest {
 
   @Test
   void testGetBlogsReturnsSortedByPublishedAtDescending() {
-    List<BlogResponseDto> result = blogController.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
 
     assertEquals(Instant.parse("2024-01-25T10:00:00Z"), result.get(0).getPublishedAt());
     assertEquals(Instant.parse("2024-01-15T10:00:00Z"), result.get(1).getPublishedAt());
@@ -81,7 +90,7 @@ class BlogControllerTest {
 
   @Test
   void testGetBlogsWithPagination() {
-    List<BlogResponseDto> result = blogController.getBlogs(0, 1);
+    List<BlogResponseDto> result = getBlogs(blogController, 0, 1);
 
     assertEquals(1, result.size());
     assertEquals(3L, result.get(0).getId());
@@ -106,14 +115,14 @@ class BlogControllerTest {
     BlogService emptyService = new BlogService(unpublishedBlogs);
     BlogController emptyController = new BlogController(emptyService);
 
-    List<BlogResponseDto> result = emptyController.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(emptyController, 0, 10);
 
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testGetBlogsConvertsToDto() {
-    List<BlogResponseDto> result = blogController.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
 
     BlogResponseDto firstDto = result.get(0);
     assertEquals("Third Post", firstDto.getTitle());
@@ -144,7 +153,7 @@ class BlogControllerTest {
     BlogService serviceWithNullCover = new BlogService(blogsWithNullCover);
     BlogController controllerWithNullCover = new BlogController(serviceWithNullCover);
 
-    List<BlogResponseDto> result = controllerWithNullCover.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(controllerWithNullCover, 0, 10);
 
     assertEquals(1, result.size());
     assertNull(result.get(0).getCoverImageUrl());
@@ -152,7 +161,7 @@ class BlogControllerTest {
 
   @Test
   void testGetBlogsWithPageBeyondAvailableData() {
-    List<BlogResponseDto> result = blogController.getBlogs(5, 10);
+    List<BlogResponseDto> result = getBlogs(blogController, 5, 10);
 
     assertTrue(result.isEmpty());
   }
@@ -173,16 +182,19 @@ class BlogControllerTest {
     BlogService defaultService = new BlogService();
     BlogController defaultController = new BlogController(defaultService);
 
-    List<BlogResponseDto> result = defaultController.getBlogs(0, 10);
+    List<BlogResponseDto> result = getBlogs(defaultController, 0, 10);
 
-    BlogResponseDto aiBlog = result.stream()
-        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
-        .findFirst()
-        .orElse(null);
+    BlogResponseDto aiBlog =
+        result.stream()
+            .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+            .findFirst()
+            .orElse(null);
 
     assertNotNull(aiBlog);
     assertEquals("Development in the era of AI", aiBlog.getTitle());
-    assertEquals("How AI tools are reshaping the way developers write, review, and ship code.", aiBlog.getExcerpt());
+    assertEquals(
+        "How AI tools are reshaping the way developers write, review, and ship code.",
+        aiBlog.getExcerpt());
     assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
   }
 }

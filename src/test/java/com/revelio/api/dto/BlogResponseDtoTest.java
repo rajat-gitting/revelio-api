@@ -54,8 +54,7 @@ class BlogResponseDtoTest {
     List<String> tags = Arrays.asList("tech");
     Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
 
-    Blog blog =
-        new Blog(1L, "Test Title", "Test excerpt", null, author, tags, publishedAt, true);
+    Blog blog = new Blog(1L, "Test Title", "Test excerpt", null, author, tags, publishedAt, true);
 
     BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
 
