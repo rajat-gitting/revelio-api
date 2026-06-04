@@ -280,15 +280,18 @@ class BlogServiceTest {
     BlogService service = new BlogService();
     List<Blog> result = service.getPublishedBlogs(0, 10);
 
-    Blog aiBlog = result.stream()
-        .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
-        .findFirst()
-        .orElse(null);
+    Blog aiBlog =
+        result.stream()
+            .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
+            .findFirst()
+            .orElse(null);
 
     assertNotNull(aiBlog);
     assertEquals(6L, aiBlog.getId());
     assertEquals("Development in the era of AI", aiBlog.getTitle());
-    assertEquals("How AI tools are reshaping the way developers write, review, and ship code.", aiBlog.getExcerpt());
+    assertEquals(
+        "How AI tools are reshaping the way developers write, review, and ship code.",
+        aiBlog.getExcerpt());
     assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
     assertTrue(aiBlog.isPublished());
     assertNotNull(aiBlog.getAuthor());

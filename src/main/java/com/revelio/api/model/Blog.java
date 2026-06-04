@@ -126,13 +126,13 @@ public class Blog {
         + id
         + ", title='"
         + title
-        + '\"'
+        + '\''
         + ", excerpt='"
         + excerpt
-        + '\"'
+        + '\''
         + ", coverImageUrl='"
         + coverImageUrl
-        + '\"'
+        + '\''
         + ", author="
         + author
         + ", tags="
@@ -186,7 +186,7 @@ public class Blog {
 
     @Override
     public String toString() {
-      return "Author{" + "name='" + name + '\"' + ", avatarUrl='" + avatarUrl + '\"' + '}';
+      return "Author{" + "name='" + name + '\'' + ", avatarUrl='" + avatarUrl + '\'' + '}';
     }
   }
 }
