@@ -25,6 +25,9 @@ public class SecurityConfig {
                 auth.requestMatchers(
                         "/api/blogs",
                         "/api/blogs/**",
+                        "/api/v1/posts/search",
+                        "/api/v1/posts/filters",
+                        "/api/v1/posts/search-config",
                         "/health",
                         "/ping",
                         "/actuator/health",
