@@ -1,5 +1,9 @@
 package com.revelio.api.service;
 
+import com.revelio.api.dto.PostFiltersDto;
+import com.revelio.api.dto.PostFiltersDto.AuthorSummaryDto;
+import com.revelio.api.dto.PostSearchResultDto;
+import com.revelio.api.dto.PostSearchResultDto.AppliedFiltersDto;
 import com.revelio.api.model.Blog;
 import com.revelio.api.model.Blog.Author;
 import java.time.Instant;
@@ -8,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +47,140 @@ public class BlogService {
   public List<Blog> filterPublishedPosts(List<Blog> blogs) {
     if (blogs == null) return new ArrayList<>();
     return blogs.stream().filter(Blog::isPublished).collect(Collectors.toList());
+  }
+
+  /**
+   * Search and filter published blog posts.
+   *
+   * <p>The {@code q} parameter is matched case-insensitively against the post title, excerpt
+   * (body), and tags. {@code categories} is a list of tag values; a post matches if it has at least
+   * one of the requested tags. {@code authors} is a list of author names; a post matches if its
+   * author name is among those requested. All active constraints are ANDed together.
+   */
+  public PostSearchResultDto searchPosts(
+      String q, List<String> categories, List<String> authors, int page, int size) {
+    if (page < 0) throw new IllegalArgumentException("Page number must be non-negative");
+    if (size <= 0) throw new IllegalArgumentException("Page size must be positive");
+
+    String normalizedQ = (q == null) ? "" : q.trim().toLowerCase(Locale.ROOT);
+    List<String> normalizedCategories =
+        (categories == null)
+            ? new ArrayList<>()
+            : categories.stream()
+                .filter(c -> c != null && !c.isBlank())
+                .map(c -> c.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toList());
+    List<String> normalizedAuthors =
+        (authors == null)
+            ? new ArrayList<>()
+            : authors.stream()
+                .filter(a -> a != null && !a.isBlank())
+                .map(a -> a.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toList());
+
+    List<Blog> filtered =
+        blogRepository.stream()
+            .filter(Blog::isPublished)
+            .filter(blog -> matchesQuery(blog, normalizedQ))
+            .filter(blog -> matchesCategories(blog, normalizedCategories))
+            .filter(blog -> matchesAuthors(blog, normalizedAuthors))
+            .sorted(Comparator.comparing(Blog::getPublishedAt).reversed())
+            .collect(Collectors.toList());
+
+    long total = filtered.size();
+    int start = page * size;
+    List<Blog> pageSlice;
+    if (start >= filtered.size()) {
+      pageSlice = new ArrayList<>();
+    } else {
+      pageSlice = new ArrayList<>(filtered.subList(start, Math.min(start + size, filtered.size())));
+    }
+
+    List<com.revelio.api.dto.BlogResponseDto> results =
+        pageSlice.stream()
+            .map(com.revelio.api.dto.BlogResponseDto::fromBlog)
+            .collect(Collectors.toList());
+
+    // AC-6: Echo the active constraints back so the UI can render chip/badge indicators for each
+    // applied filter or search term, allowing users to see — at a glance — what is active and
+    // remove individual constraints or use 'Clear all'.
+    AppliedFiltersDto appliedFilters =
+        new AppliedFiltersDto(
+            (q == null || q.isBlank()) ? null : q.trim(),
+            categories == null ? new ArrayList<>() : new ArrayList<>(categories),
+            authors == null ? new ArrayList<>() : new ArrayList<>(authors));
+
+    return new PostSearchResultDto(total, page, size, results, appliedFilters);
+  }
+
+  /** Returns the distinct set of tags (categories) and author names across all published posts. */
+  public PostFiltersDto getAvailableFilters() {
+    List<String> categories =
+        blogRepository.stream()
+            .filter(Blog::isPublished)
+            .flatMap(
+                blog ->
+                    blog.getTags() == null
+                        ? java.util.stream.Stream.empty()
+                        : blog.getTags().stream())
+            .filter(tag -> tag != null && !tag.isBlank())
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
+
+    List<AuthorSummaryDto> authors =
+        blogRepository.stream()
+            .filter(Blog::isPublished)
+            .map(Blog::getAuthor)
+            .filter(
+                author -> author != null && author.getName() != null && !author.getName().isBlank())
+            .map(author -> author.getName())
+            .distinct()
+            .sorted()
+            .map(AuthorSummaryDto::new)
+            .collect(Collectors.toList());
+
+    return new PostFiltersDto(categories, authors);
+  }
+
+  // -------------------------------------------------------------------------
+  // private helpers
+  // -------------------------------------------------------------------------
+
+  private boolean matchesQuery(Blog blog, String normalizedQ) {
+    if (normalizedQ.isEmpty()) return true;
+    if (blog.getTitle() != null && blog.getTitle().toLowerCase(Locale.ROOT).contains(normalizedQ)) {
+      return true;
+    }
+    if (blog.getExcerpt() != null
+        && blog.getExcerpt().toLowerCase(Locale.ROOT).contains(normalizedQ)) {
+      return true;
+    }
+    if (blog.getTags() != null) {
+      for (String tag : blog.getTags()) {
+        if (tag != null && tag.toLowerCase(Locale.ROOT).contains(normalizedQ)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean matchesCategories(Blog blog, List<String> normalizedCategories) {
+    if (normalizedCategories.isEmpty()) return true;
+    if (blog.getTags() == null) return false;
+    for (String tag : blog.getTags()) {
+      if (tag != null && normalizedCategories.contains(tag.toLowerCase(Locale.ROOT))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean matchesAuthors(Blog blog, List<String> normalizedAuthors) {
+    if (normalizedAuthors.isEmpty()) return true;
+    if (blog.getAuthor() == null || blog.getAuthor().getName() == null) return false;
+    return normalizedAuthors.contains(blog.getAuthor().getName().toLowerCase(Locale.ROOT));
   }
 
   private static List<Blog> seedData() {

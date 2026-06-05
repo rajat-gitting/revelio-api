@@ -2,6 +2,8 @@ package com.revelio.api.controller;
 
 import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.PostFiltersDto;
+import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.service.BlogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,5 +38,41 @@ public class BlogController {
             .map(BlogResponseDto::fromBlog)
             .collect(Collectors.toList());
     return ResponseEntity.ok(ApiResponse.ok(posts));
+  }
+
+  @GetMapping("/search")
+  @Operation(
+      summary = "Search and filter blog posts",
+      description =
+          "Returns paginated published posts matching the given query string, categories,"
+              + " and/or authors. All constraints are ANDed. The response envelope includes the"
+              + " total matched count, current page, page size, and the result list.")
+  public ResponseEntity<ApiResponse<PostSearchResultDto>> searchPosts(
+      @RequestParam(required = false) String q,
+      @RequestParam(required = false) List<String> category,
+      @RequestParam(required = false) List<String> author,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int size) {
+    log.debug(
+        "GET /api/blogs/search q={} category={} author={} page={} size={}",
+        q,
+        category,
+        author,
+        page,
+        size);
+    PostSearchResultDto result = blogService.searchPosts(q, category, author, page, size);
+    return ResponseEntity.ok(ApiResponse.ok(result));
+  }
+
+  @GetMapping("/filters")
+  @Operation(
+      summary = "Get available filter values",
+      description =
+          "Returns the distinct categories (tags) and author names available across all published"
+              + " posts, for use in populating the search filter dropdowns.")
+  public ResponseEntity<ApiResponse<PostFiltersDto>> getFilters() {
+    log.debug("GET /api/blogs/filters");
+    PostFiltersDto filters = blogService.getAvailableFilters();
+    return ResponseEntity.ok(ApiResponse.ok(filters));
   }
 }
