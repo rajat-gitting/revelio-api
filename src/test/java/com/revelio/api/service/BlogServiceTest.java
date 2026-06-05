@@ -2,6 +2,8 @@ package com.revelio.api.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.model.Blog;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -316,5 +318,61 @@ class BlogServiceTest {
 
     assertEquals(ids.size(), distinctCount);
     assertTrue(ids.contains(6L));
+  }
+
+  // ---- Tests for getPublishedBlogsPaged (AC-1, AC-2, AC-3) ----
+
+  /** AC-1: page and size params accepted; returns correct content slice. */
+  @Test
+  void testGetPublishedBlogsPagedReturnsCorrectContentSlice() {
+    // testBlogs has 3 published posts; page=0 size=2 → 2 items
+    PagedResponse<BlogResponseDto> result = blogService.getPublishedBlogsPaged(0, 2);
+
+    assertEquals(2, result.getContent().size());
+    assertEquals(3L, result.getContent().get(0).getId()); // most recent published first
+    assertEquals(1L, result.getContent().get(1).getId());
+  }
+
+  /** AC-2: response includes totalElements, totalPages, number, size. */
+  @Test
+  void testGetPublishedBlogsPagedIncludesPaginationMetadata() {
+    // 3 published posts, page=0, size=2 → totalPages=2
+    PagedResponse<BlogResponseDto> result = blogService.getPublishedBlogsPaged(0, 2);
+
+    assertEquals(3L, result.getTotalElements());
+    assertEquals(2, result.getTotalPages()); // ceil(3/2)=2
+    assertEquals(0, result.getNumber());
+    assertEquals(2, result.getSize());
+  }
+
+  /** AC-3: page >= totalPages returns empty content with valid metadata (not HTTP 400). */
+  @Test
+  void testGetPublishedBlogsPagedBeyondTotalPagesReturnsEmptyContentWithMetadata() {
+    // 3 published posts, page=5, size=10 → way beyond last page
+    PagedResponse<BlogResponseDto> result = blogService.getPublishedBlogsPaged(5, 10);
+
+    assertTrue(result.getContent().isEmpty());
+    assertEquals(3L, result.getTotalElements());
+    assertEquals(1, result.getTotalPages()); // ceil(3/10)=1
+    assertEquals(5, result.getNumber());
+    assertEquals(10, result.getSize());
+  }
+
+  /** size=0 must be rejected (size must be between 1 and 100). */
+  @Test
+  void testGetPublishedBlogsPagedThrowsForZeroSize() {
+    assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 0));
+  }
+
+  /** size=101 must be rejected. */
+  @Test
+  void testGetPublishedBlogsPagedThrowsForSizeOver100() {
+    assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 101));
+  }
+
+  /** page=-1 must be rejected. */
+  @Test
+  void testGetPublishedBlogsPagedThrowsForNegativePage() {
+    assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(-1, 10));
   }
 }

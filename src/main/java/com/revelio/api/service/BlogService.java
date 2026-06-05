@@ -1,5 +1,7 @@
 package com.revelio.api.service;
 
+import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostFiltersDto.AuthorSummaryDto;
 import com.revelio.api.dto.PostSearchResultDto;
@@ -42,6 +44,46 @@ public class BlogService {
     int start = page * size;
     if (start >= sorted.size()) return new ArrayList<>();
     return new ArrayList<>(sorted.subList(start, Math.min(start + size, sorted.size())));
+  }
+
+  /**
+   * Returns a {@link PagedResponse} of {@link BlogResponseDto} for the given page and size,
+   * including pagination metadata (totalElements, totalPages, number, size).
+   *
+   * <p>Validation rules (also enforced here so the controller stays thin):
+   *
+   * <ul>
+   *   <li>{@code page} must be &gt;= 0
+   *   <li>{@code size} must be between 1 and 100 (inclusive)
+   * </ul>
+   *
+   * <p>If {@code page} &gt;= {@code totalPages}, an empty {@code content} is returned with valid
+   * metadata (AC-3 default behaviour: empty content, not HTTP 400).
+   */
+  public PagedResponse<BlogResponseDto> getPublishedBlogsPaged(int page, int size) {
+    if (page < 0) throw new IllegalArgumentException("Page number must be non-negative");
+    if (size < 1 || size > 100)
+      throw new IllegalArgumentException("Page size must be between 1 and 100");
+
+    List<Blog> sorted =
+        blogRepository.stream()
+            .filter(Blog::isPublished)
+            .sorted(Comparator.comparing(Blog::getPublishedAt).reversed())
+            .collect(Collectors.toList());
+
+    long totalElements = sorted.size();
+    int start = page * size;
+    List<BlogResponseDto> content;
+    if (start >= sorted.size()) {
+      content = new ArrayList<>();
+    } else {
+      content =
+          sorted.subList(start, Math.min(start + size, sorted.size())).stream()
+              .map(BlogResponseDto::fromBlog)
+              .collect(Collectors.toList());
+    }
+
+    return PagedResponse.of(content, totalElements, page, size);
   }
 
   public List<Blog> filterPublishedPosts(List<Blog> blogs) {

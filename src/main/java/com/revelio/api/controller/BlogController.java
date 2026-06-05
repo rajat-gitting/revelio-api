@@ -2,13 +2,13 @@ package com.revelio.api.controller;
 
 import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.service.BlogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -29,15 +29,15 @@ public class BlogController {
   @GetMapping
   @Operation(
       summary = "List published blog posts",
-      description = "Returns paginated published posts sorted by publishedAt descending.")
-  public ResponseEntity<ApiResponse<List<BlogResponseDto>>> getBlogs(
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+      description =
+          "Returns paginated published posts sorted by publishedAt descending. "
+              + "The response mirrors the Spring Data Page structure: content, totalElements, "
+              + "totalPages, number (0-based page index), and size.")
+  public ResponseEntity<ApiResponse<PagedResponse<BlogResponseDto>>> getBlogs(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "12") int size) {
     log.debug("GET /api/blogs page={} size={}", page, size);
-    List<BlogResponseDto> posts =
-        blogService.getPublishedBlogs(page, size).stream()
-            .map(BlogResponseDto::fromBlog)
-            .collect(Collectors.toList());
-    return ResponseEntity.ok(ApiResponse.ok(posts));
+    PagedResponse<BlogResponseDto> paged = blogService.getPublishedBlogsPaged(page, size);
+    return ResponseEntity.ok(ApiResponse.ok(paged));
   }
 
   @GetMapping("/search")

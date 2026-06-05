@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.model.Blog;
 import com.revelio.api.service.BlogService;
 import java.time.Instant;
@@ -64,36 +65,43 @@ class BlogControllerTest {
     blogController = new BlogController(blogService);
   }
 
-  private List<BlogResponseDto> getBlogs(BlogController controller, int page, int size) {
-    ResponseEntity<ApiResponse<List<BlogResponseDto>>> response = controller.getBlogs(page, size);
+  /** Helper: call getBlogs and unwrap the paged response. */
+  private PagedResponse<BlogResponseDto> getPagedBlogs(
+      BlogController controller, int page, int size) {
+    ResponseEntity<ApiResponse<PagedResponse<BlogResponseDto>>> response =
+        controller.getBlogs(page, size);
     assertNotNull(response.getBody());
     assertTrue(response.getBody().isSuccess());
     return response.getBody().getData();
   }
 
+  // ---- AC-1: page and size query params accepted with correct defaults ----
+
   @Test
   void testGetBlogsReturnsPublishedPostsOnly() {
-    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 0, 10);
 
-    assertEquals(2, result.size());
-    assertEquals(3L, result.get(0).getId());
-    assertEquals(1L, result.get(1).getId());
+    assertEquals(2, result.getContent().size());
+    assertEquals(3L, result.getContent().get(0).getId());
+    assertEquals(1L, result.getContent().get(1).getId());
   }
 
   @Test
   void testGetBlogsReturnsSortedByPublishedAtDescending() {
-    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 0, 10);
 
-    assertEquals(Instant.parse("2024-01-25T10:00:00Z"), result.get(0).getPublishedAt());
-    assertEquals(Instant.parse("2024-01-15T10:00:00Z"), result.get(1).getPublishedAt());
+    assertEquals(
+        Instant.parse("2024-01-25T10:00:00Z"), result.getContent().get(0).getPublishedAt());
+    assertEquals(
+        Instant.parse("2024-01-15T10:00:00Z"), result.getContent().get(1).getPublishedAt());
   }
 
   @Test
   void testGetBlogsWithPagination() {
-    List<BlogResponseDto> result = getBlogs(blogController, 0, 1);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 0, 1);
 
-    assertEquals(1, result.size());
-    assertEquals(3L, result.get(0).getId());
+    assertEquals(1, result.getContent().size());
+    assertEquals(3L, result.getContent().get(0).getId());
   }
 
   @Test
@@ -115,16 +123,16 @@ class BlogControllerTest {
     BlogService emptyService = new BlogService(unpublishedBlogs);
     BlogController emptyController = new BlogController(emptyService);
 
-    List<BlogResponseDto> result = getBlogs(emptyController, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(emptyController, 0, 10);
 
-    assertTrue(result.isEmpty());
+    assertTrue(result.getContent().isEmpty());
   }
 
   @Test
   void testGetBlogsConvertsToDto() {
-    List<BlogResponseDto> result = getBlogs(blogController, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 0, 10);
 
-    BlogResponseDto firstDto = result.get(0);
+    BlogResponseDto firstDto = result.getContent().get(0);
     assertEquals("Third Post", firstDto.getTitle());
     assertEquals("Third excerpt", firstDto.getExcerpt());
     assertEquals("https://example.com/3.jpg", firstDto.getCoverImageUrl());
@@ -153,18 +161,60 @@ class BlogControllerTest {
     BlogService serviceWithNullCover = new BlogService(blogsWithNullCover);
     BlogController controllerWithNullCover = new BlogController(serviceWithNullCover);
 
-    List<BlogResponseDto> result = getBlogs(controllerWithNullCover, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(controllerWithNullCover, 0, 10);
 
-    assertEquals(1, result.size());
-    assertNull(result.get(0).getCoverImageUrl());
+    assertEquals(1, result.getContent().size());
+    assertNull(result.getContent().get(0).getCoverImageUrl());
+  }
+
+  // ---- AC-2: response body includes pagination metadata ----
+
+  @Test
+  void testGetBlogsResponseIncludesPaginationMetadata() {
+    // 2 published posts; page=0, size=10
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 0, 10);
+
+    assertEquals(2, result.getTotalElements());
+    assertEquals(1, result.getTotalPages()); // ceil(2/10) = 1
+    assertEquals(0, result.getNumber());
+    assertEquals(10, result.getSize());
+    assertEquals(2, result.getContent().size());
   }
 
   @Test
-  void testGetBlogsWithPageBeyondAvailableData() {
-    List<BlogResponseDto> result = getBlogs(blogController, 5, 10);
+  void testGetBlogsMetadataWithMultiplePages() {
+    // 2 published posts; page=0, size=1 → totalPages=2
+    PagedResponse<BlogResponseDto> page0 = getPagedBlogs(blogController, 0, 1);
+    assertEquals(2, page0.getTotalElements());
+    assertEquals(2, page0.getTotalPages());
+    assertEquals(0, page0.getNumber());
+    assertEquals(1, page0.getSize());
+    assertEquals(1, page0.getContent().size());
 
-    assertTrue(result.isEmpty());
+    // page=1
+    PagedResponse<BlogResponseDto> page1 = getPagedBlogs(blogController, 1, 1);
+    assertEquals(2, page1.getTotalElements());
+    assertEquals(2, page1.getTotalPages());
+    assertEquals(1, page1.getNumber());
+    assertEquals(1, page1.getSize());
+    assertEquals(1, page1.getContent().size());
   }
+
+  // ---- AC-3: page >= totalPages returns empty content with valid metadata ----
+
+  @Test
+  void testGetBlogsWithPageBeyondAvailableDataReturnsEmptyContentWithMetadata() {
+    // 2 published posts; page=5, size=10 → beyond totalPages
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(blogController, 5, 10);
+
+    assertTrue(result.getContent().isEmpty());
+    assertEquals(2, result.getTotalElements());
+    assertEquals(1, result.getTotalPages());
+    assertEquals(5, result.getNumber());
+    assertEquals(10, result.getSize());
+  }
+
+  // ---- size validation: reject size outside 1-100 ----
 
   @Test
   void testGetBlogsThrowsExceptionForInvalidPage() {
@@ -172,9 +222,18 @@ class BlogControllerTest {
   }
 
   @Test
-  void testGetBlogsThrowsExceptionForInvalidSize() {
+  void testGetBlogsThrowsExceptionForZeroSize() {
     assertThrows(IllegalArgumentException.class, () -> blogController.getBlogs(0, 0));
+  }
+
+  @Test
+  void testGetBlogsThrowsExceptionForNegativeSize() {
     assertThrows(IllegalArgumentException.class, () -> blogController.getBlogs(0, -5));
+  }
+
+  @Test
+  void testGetBlogsThrowsExceptionForSizeOver100() {
+    assertThrows(IllegalArgumentException.class, () -> blogController.getBlogs(0, 101));
   }
 
   @Test
@@ -182,10 +241,10 @@ class BlogControllerTest {
     BlogService defaultService = new BlogService();
     BlogController defaultController = new BlogController(defaultService);
 
-    List<BlogResponseDto> result = getBlogs(defaultController, 0, 10);
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(defaultController, 0, 10);
 
     BlogResponseDto aiBlog =
-        result.stream()
+        result.getContent().stream()
             .filter(blog -> blog.getTitle().equals("Development in the era of AI"))
             .findFirst()
             .orElse(null);
