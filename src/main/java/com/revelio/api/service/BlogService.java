@@ -283,6 +283,42 @@ public class BlogService {
             alice,
             Arrays.asList("ai", "development", "productivity"),
             now.minus(2, ChronoUnit.DAYS),
+            true),
+        new Blog(
+            7L,
+            "Mastering Code Reviews",
+            "Best practices for giving and receiving feedback that improves code quality and team culture.",
+            null,
+            bob,
+            Arrays.asList("code-review", "collaboration", "best-practices"),
+            now.minus(4, ChronoUnit.DAYS),
+            true),
+        new Blog(
+            8L,
+            "The Rise of Edge Computing",
+            "Why processing data closer to the user is changing how we build modern applications.",
+            null,
+            alice,
+            Arrays.asList("edge-computing", "architecture", "performance"),
+            now.minus(5, ChronoUnit.DAYS),
+            true),
+        new Blog(
+            9L,
+            "Securing Your CI/CD Pipeline",
+            "Practical steps to protect your build and deployment workflows from common vulnerabilities.",
+            null,
+            bob,
+            Arrays.asList("security", "ci-cd", "devops"),
+            now.minus(6, ChronoUnit.DAYS),
+            true),
+        new Blog(
+            10L,
+            "Writing Documentation Developers Actually Read",
+            "Tips for creating clear, concise docs that reduce support tickets and onboarding time.",
+            null,
+            alice,
+            Arrays.asList("documentation", "writing", "developer-experience"),
+            now.minus(8, ChronoUnit.DAYS),
             true));
   }
 }
