@@ -109,6 +109,12 @@ jobs:
             6. Submit your review: approve only if all of THIS repo's criteria
                are met and the standards are followed; otherwise request
                changes.
+            7. ALWAYS add a comment on the Jira ticket (via the atlassian MCP
+               server) with your verdict — whether you approved or requested
+               changes. Include: the repo and PR number, the verdict, and a
+               2-3 sentence summary (what was checked, and for a rejection,
+               the key issues). Do this even when everything is good, so the
+               ticket carries a full review trail.
 
       # Notify the orchestrator. Inngest exposes a public event-ingest endpoint,
       # so CI can push the verdict without the orchestrator needing a public URL.
