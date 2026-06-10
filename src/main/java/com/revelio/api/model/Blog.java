@@ -13,6 +13,7 @@ public class Blog {
   private List<String> tags;
   private Instant publishedAt;
   private boolean published;
+  private String body;
 
   public Blog() {}
 
@@ -33,6 +34,20 @@ public class Blog {
     this.tags = tags;
     this.publishedAt = publishedAt;
     this.published = published;
+  }
+
+  public Blog(
+      Long id,
+      String title,
+      String excerpt,
+      String coverImageUrl,
+      Author author,
+      List<String> tags,
+      Instant publishedAt,
+      boolean published,
+      String body) {
+    this(id, title, excerpt, coverImageUrl, author, tags, publishedAt, published);
+    this.body = body;
   }
 
   public Long getId() {
@@ -99,6 +114,14 @@ public class Blog {
     this.published = published;
   }
 
+  public String getBody() {
+    return body;
+  }
+
+  public void setBody(String body) {
+    this.body = body;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -111,12 +134,14 @@ public class Blog {
         && Objects.equals(coverImageUrl, blog.coverImageUrl)
         && Objects.equals(author, blog.author)
         && Objects.equals(tags, blog.tags)
-        && Objects.equals(publishedAt, blog.publishedAt);
+        && Objects.equals(publishedAt, blog.publishedAt)
+        && Objects.equals(body, blog.body);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, title, excerpt, coverImageUrl, author, tags, publishedAt, published);
+    return Objects.hash(
+        id, title, excerpt, coverImageUrl, author, tags, publishedAt, published, body);
   }
 
   @Override
@@ -141,6 +166,9 @@ public class Blog {
         + publishedAt
         + ", published="
         + published
+        + ", body='"
+        + body
+        + '\''
         + '}';
   }
 

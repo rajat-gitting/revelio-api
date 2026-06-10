@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -74,5 +75,19 @@ public class BlogController {
     log.debug("GET /api/blogs/filters");
     PostFiltersDto filters = blogService.getAvailableFilters();
     return ResponseEntity.ok(ApiResponse.ok(filters));
+  }
+
+  @GetMapping("/{id}")
+  @Operation(
+      summary = "Get a single published blog post",
+      description =
+          "Returns the full details of the published post with the given id, including the article"
+              + " body. Returns HTTP 404 if the post does not exist or is not published.")
+  public ResponseEntity<ApiResponse<BlogResponseDto>> getBlogById(@PathVariable Long id) {
+    log.debug("GET /api/blogs/{}", id);
+    return blogService
+        .getBlogById(id)
+        .map(dto -> ResponseEntity.ok(ApiResponse.ok(dto)))
+        .orElse(ResponseEntity.notFound().build());
   }
 }
