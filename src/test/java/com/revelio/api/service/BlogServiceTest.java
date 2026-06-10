@@ -301,23 +301,104 @@ class BlogServiceTest {
   }
 
   @Test
-  void testSeedDataContainsSixPublishedPosts() {
+  void testSeedDataContainsTenPublishedPosts() {
     BlogService service = new BlogService();
-    List<Blog> result = service.getPublishedBlogs(0, 10);
+    List<Blog> result = service.getPublishedBlogs(0, 20);
 
-    assertEquals(6, result.size());
+    assertEquals(10, result.size());
   }
 
   @Test
   void testNewAIBlogPostHasUniqueId() {
     BlogService service = new BlogService();
-    List<Blog> result = service.getPublishedBlogs(0, 10);
+    List<Blog> result = service.getPublishedBlogs(0, 20);
 
     List<Long> ids = result.stream().map(Blog::getId).collect(java.util.stream.Collectors.toList());
     long distinctCount = ids.stream().distinct().count();
 
     assertEquals(ids.size(), distinctCount);
     assertTrue(ids.contains(6L));
+  }
+
+  @Test
+  void testSeedDataContainsMasteringCodeReviews() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 20);
+
+    Blog card =
+        result.stream()
+            .filter(blog -> blog.getTitle().equals("Mastering Code Reviews"))
+            .findFirst()
+            .orElse(null);
+
+    assertNotNull(card);
+    assertEquals(7L, card.getId());
+    assertEquals(
+        "Best practices for giving and receiving feedback that improves code quality and team culture.",
+        card.getExcerpt());
+    assertEquals(Arrays.asList("code-review", "collaboration", "best-practices"), card.getTags());
+    assertTrue(card.isPublished());
+  }
+
+  @Test
+  void testSeedDataContainsRiseOfEdgeComputing() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 20);
+
+    Blog card =
+        result.stream()
+            .filter(blog -> blog.getTitle().equals("The Rise of Edge Computing"))
+            .findFirst()
+            .orElse(null);
+
+    assertNotNull(card);
+    assertEquals(8L, card.getId());
+    assertEquals(
+        "Why processing data closer to the user is changing how we build modern applications.",
+        card.getExcerpt());
+    assertEquals(Arrays.asList("edge-computing", "architecture", "performance"), card.getTags());
+    assertTrue(card.isPublished());
+  }
+
+  @Test
+  void testSeedDataContainsSecuringCiCdPipeline() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 20);
+
+    Blog card =
+        result.stream()
+            .filter(blog -> blog.getTitle().equals("Securing Your CI/CD Pipeline"))
+            .findFirst()
+            .orElse(null);
+
+    assertNotNull(card);
+    assertEquals(9L, card.getId());
+    assertEquals(
+        "Practical steps to protect your build and deployment workflows from common vulnerabilities.",
+        card.getExcerpt());
+    assertEquals(Arrays.asList("security", "ci-cd", "devops"), card.getTags());
+    assertTrue(card.isPublished());
+  }
+
+  @Test
+  void testSeedDataContainsWritingDocumentation() {
+    BlogService service = new BlogService();
+    List<Blog> result = service.getPublishedBlogs(0, 20);
+
+    Blog card =
+        result.stream()
+            .filter(
+                blog -> blog.getTitle().equals("Writing Documentation Developers Actually Read"))
+            .findFirst()
+            .orElse(null);
+
+    assertNotNull(card);
+    assertEquals(10L, card.getId());
+    assertEquals(
+        "Tips for creating clear, concise docs that reduce support tickets and onboarding time.",
+        card.getExcerpt());
+    assertEquals(Arrays.asList("documentation", "writing", "developer-experience"), card.getTags());
+    assertTrue(card.isPublished());
   }
 
   // ---- Tests for getPublishedBlogsPaged (AC-1, AC-2, AC-3) ----
