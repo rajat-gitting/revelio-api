@@ -256,4 +256,169 @@ class BlogControllerTest {
         aiBlog.getExcerpt());
     assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
   }
+
+  // ---- GET /api/blogs/{id} endpoint tests ----
+
+  /** AC: endpoint returns 200 with the correct post when a published post id is requested. */
+  @Test
+  void testGetBlogByIdReturnsPublishedPost() {
+    List<Blog> blogs = new ArrayList<>();
+    Blog.Author author = new Blog.Author("Alice Chen", null);
+    blogs.add(
+        new Blog(
+            1L,
+            "Test Post",
+            "Test excerpt",
+            null,
+            author,
+            Arrays.asList("java"),
+            Instant.parse("2024-01-15T10:00:00Z"),
+            true,
+            "Full article body content for the test post."));
+    BlogService service = new BlogService(blogs);
+    BlogController controller = new BlogController(service);
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = controller.getBlogById(1L);
+
+    assertEquals(200, response.getStatusCode().value());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    BlogResponseDto dto = response.getBody().getData();
+    assertNotNull(dto);
+    assertEquals(1L, dto.getId());
+    assertEquals("Test Post", dto.getTitle());
+    assertEquals("Full article body content for the test post.", dto.getBody());
+  }
+
+  /** AC: endpoint returns 404 when id does not match any published post. */
+  @Test
+  void testGetBlogByIdReturns404WhenNotFound() {
+    BlogService service = new BlogService(new ArrayList<>());
+    BlogController controller = new BlogController(service);
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = controller.getBlogById(999L);
+
+    assertEquals(404, response.getStatusCode().value());
+  }
+
+  /** AC: endpoint returns 404 for unpublished posts. */
+  @Test
+  void testGetBlogByIdReturns404ForUnpublishedPost() {
+    List<Blog> blogs = new ArrayList<>();
+    Blog.Author author = new Blog.Author("Bob Smith", null);
+    blogs.add(
+        new Blog(
+            2L,
+            "Unpublished Post",
+            "Excerpt",
+            null,
+            author,
+            Arrays.asList("draft"),
+            Instant.parse("2024-01-15T10:00:00Z"),
+            false,
+            "Body content that should not be visible."));
+    BlogService service = new BlogService(blogs);
+    BlogController controller = new BlogController(service);
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = controller.getBlogById(2L);
+
+    assertEquals(404, response.getStatusCode().value());
+  }
+
+  /** AC: response envelope matches existing pattern {success, message, data, timestamp}. */
+  @Test
+  void testGetBlogByIdResponseEnvelopeMatchesPattern() {
+    List<Blog> blogs = new ArrayList<>();
+    Blog.Author author = new Blog.Author("Alice Chen", null);
+    blogs.add(
+        new Blog(
+            1L,
+            "Envelope Test",
+            "Excerpt",
+            null,
+            author,
+            Arrays.asList("test"),
+            Instant.parse("2024-06-01T10:00:00Z"),
+            true,
+            "Article body text."));
+    BlogService service = new BlogService(blogs);
+    BlogController controller = new BlogController(service);
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = controller.getBlogById(1L);
+
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    assertEquals("OK", response.getBody().getMessage());
+    assertNotNull(response.getBody().getData());
+    assertNotNull(response.getBody().getTimestamp());
+  }
+
+  /** AC: body field is included in BlogResponseDto returned from GET /api/blogs/{id}. */
+  @Test
+  void testGetBlogByIdIncludesBodyField() {
+    List<Blog> blogs = new ArrayList<>();
+    Blog.Author author = new Blog.Author("Alice Chen", null);
+    String expectedBody = "This is the full article body with multiple paragraphs of content.";
+    blogs.add(
+        new Blog(
+            5L,
+            "Body Test Post",
+            "A short excerpt",
+            null,
+            author,
+            Arrays.asList("java", "testing"),
+            Instant.parse("2024-03-01T09:00:00Z"),
+            true,
+            expectedBody));
+    BlogService service = new BlogService(blogs);
+    BlogController controller = new BlogController(service);
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = controller.getBlogById(5L);
+
+    assertEquals(200, response.getStatusCode().value());
+    assertNotNull(response.getBody());
+    assertEquals(expectedBody, response.getBody().getData().getBody());
+  }
+
+  /** AC: existing GET /api/blogs endpoint continues to return body field (no regression). */
+  @Test
+  void testGetBlogsIncludesBodyFieldInResponseDtos() {
+    List<Blog> blogs = new ArrayList<>();
+    Blog.Author author = new Blog.Author("Alice Chen", null);
+    blogs.add(
+        new Blog(
+            1L,
+            "Post With Body",
+            "Excerpt",
+            null,
+            author,
+            Arrays.asList("java"),
+            Instant.parse("2024-01-15T10:00:00Z"),
+            true,
+            "The full article body for regression testing."));
+    BlogService service = new BlogService(blogs);
+    BlogController controller = new BlogController(service);
+
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(controller, 0, 10);
+
+    assertEquals(1, result.getContent().size());
+    assertEquals(
+        "The full article body for regression testing.", result.getContent().get(0).getBody());
+  }
+
+  /** AC: all 10 seed posts have a non-null, non-empty body field. */
+  @Test
+  void testSeedDataAllPostsHaveNonEmptyBody() {
+    BlogService service = new BlogService();
+    BlogController controller = new BlogController(service);
+
+    PagedResponse<BlogResponseDto> result = getPagedBlogs(controller, 0, 20);
+
+    assertEquals(10, result.getContent().size());
+    for (BlogResponseDto post : result.getContent()) {
+      assertNotNull(post.getBody(), "Body should not be null for post: " + post.getTitle());
+      assertFalse(
+          post.getBody().isBlank(), "Body should not be blank for post: " + post.getTitle());
+    }
+  }
 }

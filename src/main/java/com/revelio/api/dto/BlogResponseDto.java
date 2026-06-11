@@ -13,6 +13,7 @@ public class BlogResponseDto {
   private AuthorDto author;
   private List<String> tags;
   private Instant publishedAt;
+  private String body;
 
   public BlogResponseDto() {}
 
@@ -33,6 +34,19 @@ public class BlogResponseDto {
     this.publishedAt = publishedAt;
   }
 
+  public BlogResponseDto(
+      Long id,
+      String title,
+      String excerpt,
+      String coverImageUrl,
+      AuthorDto author,
+      List<String> tags,
+      Instant publishedAt,
+      String body) {
+    this(id, title, excerpt, coverImageUrl, author, tags, publishedAt);
+    this.body = body;
+  }
+
   public static BlogResponseDto fromBlog(Blog blog) {
     if (blog == null) {
       return null;
@@ -48,7 +62,8 @@ public class BlogResponseDto {
         blog.getCoverImageUrl(),
         authorDto,
         blog.getTags(),
-        blog.getPublishedAt());
+        blog.getPublishedAt(),
+        blog.getBody());
   }
 
   public Long getId() {
@@ -107,6 +122,14 @@ public class BlogResponseDto {
     this.publishedAt = publishedAt;
   }
 
+  public String getBody() {
+    return body;
+  }
+
+  public void setBody(String body) {
+    this.body = body;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -118,12 +141,13 @@ public class BlogResponseDto {
         && Objects.equals(coverImageUrl, that.coverImageUrl)
         && Objects.equals(author, that.author)
         && Objects.equals(tags, that.tags)
-        && Objects.equals(publishedAt, that.publishedAt);
+        && Objects.equals(publishedAt, that.publishedAt)
+        && Objects.equals(body, that.body);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, title, excerpt, coverImageUrl, author, tags, publishedAt);
+    return Objects.hash(id, title, excerpt, coverImageUrl, author, tags, publishedAt, body);
   }
 
   public static class AuthorDto {
