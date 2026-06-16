@@ -14,6 +14,7 @@ public class BlogResponseDto {
   private List<String> tags;
   private Instant publishedAt;
   private String body;
+  private int readingTimeMinutes;
 
   public BlogResponseDto() {}
 
@@ -47,6 +48,20 @@ public class BlogResponseDto {
     this.body = body;
   }
 
+  public BlogResponseDto(
+      Long id,
+      String title,
+      String excerpt,
+      String coverImageUrl,
+      AuthorDto author,
+      List<String> tags,
+      Instant publishedAt,
+      String body,
+      int readingTimeMinutes) {
+    this(id, title, excerpt, coverImageUrl, author, tags, publishedAt, body);
+    this.readingTimeMinutes = readingTimeMinutes;
+  }
+
   public static BlogResponseDto fromBlog(Blog blog) {
     if (blog == null) {
       return null;
@@ -55,15 +70,25 @@ public class BlogResponseDto {
     if (blog.getAuthor() != null) {
       authorDto = new AuthorDto(blog.getAuthor().getName(), blog.getAuthor().getAvatarUrl());
     }
-    return new BlogResponseDto(
-        blog.getId(),
-        blog.getTitle(),
-        blog.getExcerpt(),
-        blog.getCoverImageUrl(),
-        authorDto,
-        blog.getTags(),
-        blog.getPublishedAt(),
-        blog.getBody());
+    String body = blog.getBody();
+    int wordCount = 0;
+    if (body != null && !body.isBlank()) {
+      String[] words = body.trim().split("\\s+");
+      wordCount = words.length;
+    }
+    int readingTimeMinutes = Math.max(1, (int) Math.ceil(wordCount / 200.0));
+    BlogResponseDto dto =
+        new BlogResponseDto(
+            blog.getId(),
+            blog.getTitle(),
+            blog.getExcerpt(),
+            blog.getCoverImageUrl(),
+            authorDto,
+            blog.getTags(),
+            blog.getPublishedAt(),
+            body);
+    dto.setReadingTimeMinutes(readingTimeMinutes);
+    return dto;
   }
 
   public Long getId() {
@@ -130,12 +155,21 @@ public class BlogResponseDto {
     this.body = body;
   }
 
+  public int getReadingTimeMinutes() {
+    return readingTimeMinutes;
+  }
+
+  public void setReadingTimeMinutes(int readingTimeMinutes) {
+    this.readingTimeMinutes = readingTimeMinutes;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     BlogResponseDto that = (BlogResponseDto) o;
-    return Objects.equals(id, that.id)
+    return readingTimeMinutes == that.readingTimeMinutes
+        && Objects.equals(id, that.id)
         && Objects.equals(title, that.title)
         && Objects.equals(excerpt, that.excerpt)
         && Objects.equals(coverImageUrl, that.coverImageUrl)
@@ -147,7 +181,8 @@ public class BlogResponseDto {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, title, excerpt, coverImageUrl, author, tags, publishedAt, body);
+    return Objects.hash(
+        id, title, excerpt, coverImageUrl, author, tags, publishedAt, body, readingTimeMinutes);
   }
 
   public static class AuthorDto {

@@ -212,4 +212,81 @@ class BlogResponseDtoTest {
     assertEquals(author1.hashCode(), author2.hashCode());
     assertNotEquals(author1.hashCode(), author3.hashCode());
   }
+
+  // --- readingTimeMinutes tests (AC 1-4) ---
+
+  @Test
+  void testReadingTimeMinutesNullBodyIsOne() {
+    // AC 3: null body → readingTimeMinutes == 1
+    Blog blog = new Blog(1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, null);
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  @Test
+  void testReadingTimeMinutesBlankBodyIsOne() {
+    // AC 3: blank body → readingTimeMinutes == 1
+    Blog blog = new Blog(1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, "   ");
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  @Test
+  void testReadingTimeMinutesEmptyBodyIsOne() {
+    // AC 3: empty body → readingTimeMinutes == 1
+    Blog blog = new Blog(1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, "");
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  @Test
+  void testReadingTimeMinutesCalculationCeilDiv200() {
+    // AC 2: Math.ceil(wordCount / 200), clamped to min 1
+    // 200 words → 1 min, 201 words → 2 min, 400 words → 2 min, 401 words → 3 min
+    String body200 = "word ".repeat(200).trim();
+    Blog blog200 =
+        new Blog(1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, body200);
+    assertEquals(1, BlogResponseDto.fromBlog(blog200).getReadingTimeMinutes());
+
+    String body201 = "word ".repeat(201).trim();
+    Blog blog201 =
+        new Blog(2L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, body201);
+    assertEquals(2, BlogResponseDto.fromBlog(blog201).getReadingTimeMinutes());
+
+    String body400 = "word ".repeat(400).trim();
+    Blog blog400 =
+        new Blog(3L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, body400);
+    assertEquals(2, BlogResponseDto.fromBlog(blog400).getReadingTimeMinutes());
+
+    String body401 = "word ".repeat(401).trim();
+    Blog blog401 =
+        new Blog(4L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, body401);
+    assertEquals(3, BlogResponseDto.fromBlog(blog401).getReadingTimeMinutes());
+  }
+
+  @Test
+  void testReadingTimeMinutesFieldPresentInDto() {
+    // AC 1: readingTimeMinutes is a top-level field on BlogResponseDto
+    Blog blog =
+        new Blog(
+            1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, "one two three");
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+    // 3 words / 200 = 0.015 → ceil = 1, min 1 → 1
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  @Test
+  void testReadingTimeMinutesIncludedInEqualsAndHashCode() {
+    // AC: equals() and hashCode() include readingTimeMinutes
+    Blog blog =
+        new Blog(
+            1L, "Title", "Excerpt", null, null, List.of(), Instant.now(), true, "one two three");
+    BlogResponseDto dto1 = BlogResponseDto.fromBlog(blog);
+    BlogResponseDto dto2 = BlogResponseDto.fromBlog(blog);
+    assertEquals(dto1, dto2);
+    assertEquals(dto1.hashCode(), dto2.hashCode());
+
+    dto2.setReadingTimeMinutes(99);
+    assertNotEquals(dto1, dto2);
+  }
 }
