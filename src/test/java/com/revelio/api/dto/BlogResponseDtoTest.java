@@ -212,4 +212,90 @@ class BlogResponseDtoTest {
     assertEquals(author1.hashCode(), author2.hashCode());
     assertNotEquals(author1.hashCode(), author3.hashCode());
   }
+
+  // ---- CR-32: readingTimeMinutes field ----
+
+  /** AC: null body must yield readingTimeMinutes = 1, never 0. */
+  @Test
+  void testComputeReadingTimeMinutesNullBodyReturnsOne() {
+    assertEquals(1, BlogResponseDto.computeReadingTimeMinutes(null));
+  }
+
+  /** AC: empty/blank body must yield readingTimeMinutes = 1, never 0. */
+  @Test
+  void testComputeReadingTimeMinutesEmptyBodyReturnsOne() {
+    assertEquals(1, BlogResponseDto.computeReadingTimeMinutes(""));
+    assertEquals(1, BlogResponseDto.computeReadingTimeMinutes("   "));
+  }
+
+  /** AC: reading time is derived from the body at 200 wpm, ceiling, minimum 1. */
+  @Test
+  void testComputeReadingTimeMinutesCalculationCeilingAt200Wpm() {
+    // Exactly 200 words → 1 min
+    String exactly200 = "word ".repeat(200).trim();
+    assertEquals(1, BlogResponseDto.computeReadingTimeMinutes(exactly200));
+
+    // 201 words → ceiling(201/200) = 2 min
+    String twoHundredOne = "word ".repeat(201).trim();
+    assertEquals(2, BlogResponseDto.computeReadingTimeMinutes(twoHundredOne));
+
+    // 400 words → 2 min
+    String exactly400 = "word ".repeat(400).trim();
+    assertEquals(2, BlogResponseDto.computeReadingTimeMinutes(exactly400));
+
+    // 1 word → ceiling(1/200) = 1 min (minimum)
+    assertEquals(1, BlogResponseDto.computeReadingTimeMinutes("hello"));
+  }
+
+  /** AC: fromBlog() sets readingTimeMinutes on the returned DTO. */
+  @Test
+  void testFromBlogSetsReadingTimeMinutes() {
+    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    List<String> tags = Arrays.asList("tech");
+    Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
+
+    // 400-word body → 2 min read
+    String body400 = "word ".repeat(400).trim();
+    Blog blog =
+        new Blog(
+            1L,
+            "Title",
+            "Excerpt",
+            "https://example.com/cover.jpg",
+            author,
+            tags,
+            publishedAt,
+            true,
+            body400);
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto);
+    assertEquals(2, dto.getReadingTimeMinutes());
+  }
+
+  /** AC: fromBlog() with null body sets readingTimeMinutes = 1. */
+  @Test
+  void testFromBlogNullBodyReadingTimeIsOne() {
+    Blog.Author author = new Blog.Author("John Doe", "https://example.com/avatar.jpg");
+    List<String> tags = Arrays.asList("tech");
+    Instant publishedAt = Instant.parse("2024-01-15T10:00:00Z");
+
+    Blog blog =
+        new Blog(
+            2L,
+            "No Body Post",
+            "Excerpt",
+            "https://example.com/cover.jpg",
+            author,
+            tags,
+            publishedAt,
+            true);
+    // body not set — defaults to null
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto);
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
 }
