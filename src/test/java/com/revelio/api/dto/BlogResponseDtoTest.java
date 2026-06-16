@@ -212,4 +212,135 @@ class BlogResponseDtoTest {
     assertEquals(author1.hashCode(), author2.hashCode());
     assertNotEquals(author1.hashCode(), author3.hashCode());
   }
+
+  // ---- CR-32: readingTimeMinutes calculation tests ----
+
+  /** AC4: readingTimeMinutes = Math.max(1, ceil(wordCount / 200)) with normal body. */
+  @Test
+  void testFromBlogReadingTimeMinutesForTypicalBody() {
+    // 400 words => 400/200 = 2.0 => ceil = 2 => max(1,2) = 2
+    String body = "word ".repeat(400).trim();
+    Blog blog =
+        new Blog(
+            1L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true,
+            body);
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+    assertEquals(2, dto.getReadingTimeMinutes());
+  }
+
+  /** AC4: fractional word count rounds up via ceil. */
+  @Test
+  void testFromBlogReadingTimeMinutesRoundsUp() {
+    // 201 words => 201/200 = 1.005 => ceil = 2 => max(1,2) = 2
+    String body = "word ".repeat(201).trim();
+    Blog blog =
+        new Blog(
+            2L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true,
+            body);
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+    assertEquals(2, dto.getReadingTimeMinutes());
+  }
+
+  /** AC5: null body => readingTimeMinutes is 1 (never 0). */
+  @Test
+  void testFromBlogReadingTimeMinutesIsOneWhenBodyIsNull() {
+    Blog blog =
+        new Blog(
+            3L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true);
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  /** AC5: blank body => readingTimeMinutes is 1 (never 0). */
+  @Test
+  void testFromBlogReadingTimeMinutesIsOneWhenBodyIsBlank() {
+    Blog blog =
+        new Blog(
+            4L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true,
+            "   ");
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  /** AC4/5: exactly 200 words => readingTimeMinutes = 1. */
+  @Test
+  void testFromBlogReadingTimeMinutesExactly200Words() {
+    String body = "word ".repeat(200).trim();
+    Blog blog =
+        new Blog(
+            5L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true,
+            body);
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+    assertEquals(1, dto.getReadingTimeMinutes());
+  }
+
+  /** AC1/2/3: readingTimeMinutes is non-null on every fromBlog() result. */
+  @Test
+  void testFromBlogReadingTimeMinutesIsNeverNull() {
+    Blog blog =
+        new Blog(
+            6L,
+            "Title",
+            "excerpt",
+            null,
+            null,
+            Arrays.asList("tag"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            true,
+            "some body content here");
+
+    BlogResponseDto dto = BlogResponseDto.fromBlog(blog);
+
+    assertNotNull(dto.getReadingTimeMinutes());
+  }
 }

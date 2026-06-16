@@ -14,6 +14,7 @@ public class BlogResponseDto {
   private List<String> tags;
   private Instant publishedAt;
   private String body;
+  private Integer readingTimeMinutes;
 
   public BlogResponseDto() {}
 
@@ -55,15 +56,21 @@ public class BlogResponseDto {
     if (blog.getAuthor() != null) {
       authorDto = new AuthorDto(blog.getAuthor().getName(), blog.getAuthor().getAvatarUrl());
     }
-    return new BlogResponseDto(
-        blog.getId(),
-        blog.getTitle(),
-        blog.getExcerpt(),
-        blog.getCoverImageUrl(),
-        authorDto,
-        blog.getTags(),
-        blog.getPublishedAt(),
-        blog.getBody());
+    String body = blog.getBody();
+    int wordCount = (body == null || body.isBlank()) ? 0 : body.trim().split("\\s+").length;
+    int readingTimeMinutes = Math.max(1, (int) Math.ceil((double) wordCount / 200));
+    BlogResponseDto dto =
+        new BlogResponseDto(
+            blog.getId(),
+            blog.getTitle(),
+            blog.getExcerpt(),
+            blog.getCoverImageUrl(),
+            authorDto,
+            blog.getTags(),
+            blog.getPublishedAt(),
+            body);
+    dto.setReadingTimeMinutes(readingTimeMinutes);
+    return dto;
   }
 
   public Long getId() {
@@ -130,6 +137,14 @@ public class BlogResponseDto {
     this.body = body;
   }
 
+  public Integer getReadingTimeMinutes() {
+    return readingTimeMinutes;
+  }
+
+  public void setReadingTimeMinutes(Integer readingTimeMinutes) {
+    this.readingTimeMinutes = readingTimeMinutes;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -142,12 +157,14 @@ public class BlogResponseDto {
         && Objects.equals(author, that.author)
         && Objects.equals(tags, that.tags)
         && Objects.equals(publishedAt, that.publishedAt)
-        && Objects.equals(body, that.body);
+        && Objects.equals(body, that.body)
+        && Objects.equals(readingTimeMinutes, that.readingTimeMinutes);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, title, excerpt, coverImageUrl, author, tags, publishedAt, body);
+    return Objects.hash(
+        id, title, excerpt, coverImageUrl, author, tags, publishedAt, body, readingTimeMinutes);
   }
 
   public static class AuthorDto {
