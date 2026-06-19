@@ -411,9 +411,6 @@ class BlogServiceTest {
     assertTrue(card.isPublished());
   }
 
-  // ---- Tests for getPublishedBlogsPaged (AC-1, AC-2, AC-3) ----
-
-  /** AC-1: page and size params accepted; returns correct content slice. */
   @Test
   void testGetPublishedBlogsPagedReturnsCorrectContentSlice() {
     // testBlogs has 3 published posts; page=0 size=2 → 2 items
@@ -424,7 +421,6 @@ class BlogServiceTest {
     assertEquals(1L, result.getContent().get(1).getId());
   }
 
-  /** AC-2: response includes totalElements, totalPages, number, size. */
   @Test
   void testGetPublishedBlogsPagedIncludesPaginationMetadata() {
     // 3 published posts, page=0, size=2 → totalPages=2
@@ -436,7 +432,6 @@ class BlogServiceTest {
     assertEquals(2, result.getSize());
   }
 
-  /** AC-3: page >= totalPages returns empty content with valid metadata (not HTTP 400). */
   @Test
   void testGetPublishedBlogsPagedBeyondTotalPagesReturnsEmptyContentWithMetadata() {
     // 3 published posts, page=5, size=10 → way beyond last page
@@ -449,19 +444,16 @@ class BlogServiceTest {
     assertEquals(10, result.getSize());
   }
 
-  /** size=0 must be rejected (size must be between 1 and 100). */
   @Test
   void testGetPublishedBlogsPagedThrowsForZeroSize() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 0));
   }
 
-  /** size=101 must be rejected. */
   @Test
   void testGetPublishedBlogsPagedThrowsForSizeOver100() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 101));
   }
 
-  /** page=-1 must be rejected. */
   @Test
   void testGetPublishedBlogsPagedThrowsForNegativePage() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(-1, 10));

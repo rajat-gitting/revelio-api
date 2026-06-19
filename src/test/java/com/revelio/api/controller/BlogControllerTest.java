@@ -66,7 +66,6 @@ class BlogControllerTest {
     blogController = new BlogController(blogService);
   }
 
-  /** Helper: call getBlogs and unwrap the paged response. */
   private PagedResponse<BlogResponseDto> getPagedBlogs(
       BlogController controller, int page, int size) {
     ResponseEntity<ApiResponse<PagedResponse<BlogResponseDto>>> response =
@@ -75,8 +74,6 @@ class BlogControllerTest {
     assertTrue(response.getBody().isSuccess());
     return response.getBody().getData();
   }
-
-  // ---- AC-1: page and size query params accepted with correct defaults ----
 
   @Test
   void testGetBlogsReturnsPublishedPostsOnly() {
@@ -168,8 +165,6 @@ class BlogControllerTest {
     assertNull(result.getContent().get(0).getCoverImageUrl());
   }
 
-  // ---- AC-2: response body includes pagination metadata ----
-
   @Test
   void testGetBlogsResponseIncludesPaginationMetadata() {
     // 2 published posts; page=0, size=10
@@ -201,8 +196,6 @@ class BlogControllerTest {
     assertEquals(1, page1.getContent().size());
   }
 
-  // ---- AC-3: page >= totalPages returns empty content with valid metadata ----
-
   @Test
   void testGetBlogsWithPageBeyondAvailableDataReturnsEmptyContentWithMetadata() {
     // 2 published posts; page=5, size=10 → beyond totalPages
@@ -214,8 +207,6 @@ class BlogControllerTest {
     assertEquals(5, result.getNumber());
     assertEquals(10, result.getSize());
   }
-
-  // ---- size validation: reject size outside 1-100 ----
 
   @Test
   void testGetBlogsThrowsExceptionForInvalidPage() {
@@ -258,9 +249,6 @@ class BlogControllerTest {
     assertEquals(Arrays.asList("ai", "development", "productivity"), aiBlog.getTags());
   }
 
-  // ---- GET /api/blogs/{id} endpoint tests ----
-
-  /** AC: endpoint returns 200 with the correct post when a published post id is requested. */
   @Test
   void testGetBlogByIdReturnsPublishedPost() {
     List<Blog> blogs = new ArrayList<>();
@@ -291,7 +279,6 @@ class BlogControllerTest {
     assertEquals("Full article body content for the test post.", dto.getBody());
   }
 
-  /** AC: endpoint returns 404 when id does not match any published post. */
   @Test
   void testGetBlogByIdReturns404WhenNotFound() {
     BlogService service = new BlogService(new ArrayList<>());
@@ -302,7 +289,6 @@ class BlogControllerTest {
     assertEquals(404, response.getStatusCode().value());
   }
 
-  /** AC: endpoint returns 404 for unpublished posts. */
   @Test
   void testGetBlogByIdReturns404ForUnpublishedPost() {
     List<Blog> blogs = new ArrayList<>();
@@ -326,7 +312,6 @@ class BlogControllerTest {
     assertEquals(404, response.getStatusCode().value());
   }
 
-  /** AC: response envelope matches existing pattern {success, message, data, timestamp}. */
   @Test
   void testGetBlogByIdResponseEnvelopeMatchesPattern() {
     List<Blog> blogs = new ArrayList<>();
@@ -354,7 +339,6 @@ class BlogControllerTest {
     assertNotNull(response.getBody().getTimestamp());
   }
 
-  /** AC: body field is included in BlogResponseDto returned from GET /api/blogs/{id}. */
   @Test
   void testGetBlogByIdIncludesBodyField() {
     List<Blog> blogs = new ArrayList<>();
@@ -381,7 +365,6 @@ class BlogControllerTest {
     assertEquals(expectedBody, response.getBody().getData().getBody());
   }
 
-  /** AC: existing GET /api/blogs endpoint continues to return body field (no regression). */
   @Test
   void testGetBlogsIncludesBodyFieldInResponseDtos() {
     List<Blog> blogs = new ArrayList<>();
@@ -407,7 +390,6 @@ class BlogControllerTest {
         "The full article body for regression testing.", result.getContent().get(0).getBody());
   }
 
-  /** AC: all 10 seed posts have a non-null, non-empty body field. */
   @Test
   void testSeedDataAllPostsHaveNonEmptyBody() {
     BlogService service = new BlogService();
