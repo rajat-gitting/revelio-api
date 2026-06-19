@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "Homepage")
 @RestController
-@RequestMapping("/api/homepage")
+@RequestMapping("/homepage")
 @RequiredArgsConstructor
 @Slf4j
 public class HomepageController {
