@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +36,14 @@ public class BlogService {
   private static final Logger log = LoggerFactory.getLogger(BlogService.class);
   private static final String DATA_FILE = "data/data.json";
 
-  private final List<Blog> blogRepository;
+  private final CopyOnWriteArrayList<Blog> blogRepository;
   private final ObjectMapper objectMapper;
   private final String dataFilePath;
 
   public BlogService() {
     this.objectMapper = buildObjectMapper();
     this.dataFilePath = DATA_FILE;
-    this.blogRepository = loadOrSeed(this.dataFilePath);
+    this.blogRepository = new CopyOnWriteArrayList<>(loadOrSeed(this.dataFilePath));
   }
 
   /** Constructor for tests — injects a fixed list; no file I/O. */
@@ -50,7 +51,7 @@ public class BlogService {
     this.objectMapper = buildObjectMapper();
     this.dataFilePath = null;
     this.blogRepository =
-        blogRepository != null ? new ArrayList<>(blogRepository) : new ArrayList<>();
+        new CopyOnWriteArrayList<>(blogRepository != null ? blogRepository : List.of());
   }
 
   /** Package-private constructor for tests that want file I/O with a custom path. */
@@ -58,9 +59,9 @@ public class BlogService {
     this.objectMapper = buildObjectMapper();
     this.dataFilePath = dataFilePath;
     if (blogRepository != null) {
-      this.blogRepository = new ArrayList<>(blogRepository);
+      this.blogRepository = new CopyOnWriteArrayList<>(blogRepository);
     } else {
-      this.blogRepository = loadOrSeed(dataFilePath);
+      this.blogRepository = new CopyOnWriteArrayList<>(loadOrSeed(dataFilePath));
     }
   }
 
