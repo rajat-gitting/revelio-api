@@ -125,33 +125,35 @@ public class BlogService {
       throw new BadRequestException("Author name is required");
     }
 
-    long newId =
-        blogRepository.stream()
-                .map(Blog::getId)
-                .filter(id -> id != null)
-                .mapToLong(Long::longValue)
-                .max()
-                .orElse(0L)
-            + 1L;
+    synchronized (blogRepository) {
+      long newId =
+          blogRepository.stream()
+                  .map(Blog::getId)
+                  .filter(id -> id != null)
+                  .mapToLong(Long::longValue)
+                  .max()
+                  .orElse(0L)
+              + 1L;
 
-    Author author = new Author(request.getAuthor().getName(), request.getAuthor().getAvatarUrl());
+      Author author = new Author(request.getAuthor().getName(), request.getAuthor().getAvatarUrl());
 
-    Blog blog =
-        new Blog(
-            newId,
-            request.getTitle(),
-            request.getExcerpt(),
-            request.getCoverImageUrl(),
-            author,
-            request.getTags() != null ? request.getTags() : new ArrayList<>(),
-            Instant.now(),
-            true,
-            request.getBody());
+      Blog blog =
+          new Blog(
+              newId,
+              request.getTitle(),
+              request.getExcerpt(),
+              request.getCoverImageUrl(),
+              author,
+              request.getTags() != null ? request.getTags() : new ArrayList<>(),
+              Instant.now(),
+              true,
+              request.getBody());
 
-    blogRepository.add(blog);
-    persistToFile(blogRepository, dataFilePath);
+      blogRepository.add(blog);
+      persistToFile(blogRepository, dataFilePath);
 
-    return BlogResponseDto.fromBlog(blog);
+      return BlogResponseDto.fromBlog(blog);
+    }
   }
 
   public List<Blog> getPublishedBlogs(int page, int size) {

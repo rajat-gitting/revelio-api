@@ -9,6 +9,7 @@ import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.service.BlogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -88,7 +89,7 @@ public class BlogController {
           "Creates a new published blog post. The backend assigns a new id, sets publishedAt to"
               + " now, and sets published = true. Returns HTTP 201 with the created post.")
   public ResponseEntity<ApiResponse<BlogResponseDto>> createBlog(
-      @RequestBody CreateBlogRequestDto request) {
+      @Valid @RequestBody CreateBlogRequestDto request) {
     log.debug("POST /api/blogs title={}", request == null ? null : request.getTitle());
     BlogResponseDto created = blogService.createBlog(request);
     return ResponseEntity.created(URI.create("/api/blogs/" + created.getId()))
