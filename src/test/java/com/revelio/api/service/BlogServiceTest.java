@@ -2,17 +2,26 @@ package com.revelio.api.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.model.Blog;
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class BlogServiceTest {
+
+  @TempDir java.nio.file.Path tempDir;
 
   private BlogService blogService;
   private List<Blog> testBlogs;
@@ -455,5 +464,107 @@ class BlogServiceTest {
   @Test
   void testGetPublishedBlogsPagedThrowsForNegativePage() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(-1, 10));
+  }
+
+  // ---- Tests for createBlog (CR-36 acceptance criteria) ----
+
+  private CreateBlogRequestDto buildValidRequest() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
+    return new CreateBlogRequestDto(
+        "New Blog Title",
+        "A short summary of the blog.",
+        "Full body content of the new blog post.",
+        Arrays.asList("tag1", "tag2"),
+        author,
+        null);
+  }
+
+  /**
+   * AC: On successful submission, the new blog is persisted to the backend's data/data.json file.
+   */
+  @Test
+  void testCreateBlogPersistsToDataJsonFile() throws Exception {
+    String filePath = tempDir.resolve("data.json").toString();
+    BlogService service = new BlogService(new ArrayList<>(testBlogs), filePath);
+
+    service.createBlog(buildValidRequest());
+
+    File file = new File(filePath);
+    assertTrue(file.exists(), "data.json should be created after createBlog");
+
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());
+    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    List<Blog> persisted = mapper.readValue(file, new TypeReference<List<Blog>>() {});
+    boolean found =
+        persisted.stream().anyMatch(b -> "New Blog Title".equals(b.getTitle()) && b.isPublished());
+    assertTrue(found, "Newly created blog should be persisted in data.json");
+  }
+
+  /** AC: The backend serves blogs from data/data.json (loading existing entries on startup). */
+  @Test
+  void testBlogServiceLoadsFromDataJsonOnStartup() throws Exception {
+    String filePath = tempDir.resolve("data.json").toString();
+
+    // First service writes seed data to the file
+    BlogService firstService = new BlogService(null, filePath);
+    int seedCount = firstService.getPublishedBlogs(0, 100).size();
+    assertTrue(seedCount > 0, "Seed data should produce at least one blog");
+
+    // Second service loads from the file
+    BlogService secondService = new BlogService(null, filePath);
+    List<Blog> loaded = secondService.getPublishedBlogs(0, 100);
+    assertEquals(seedCount, loaded.size(), "Second service should load same blogs from data.json");
+  }
+
+  /**
+   * AC: createBlog assigns max-id+1, sets published=true, sets publishedAt, and returns correct
+   * DTO.
+   */
+  @Test
+  void testCreateBlogAssignsCorrectIdAndFields() {
+    // testBlogs max id is 5
+    BlogResponseDto result = blogService.createBlog(buildValidRequest());
+
+    assertNotNull(result);
+    assertEquals(6L, result.getId(), "New id should be max(existing ids) + 1 = 5 + 1 = 6");
+    assertEquals("New Blog Title", result.getTitle());
+    assertEquals("A short summary of the blog.", result.getExcerpt());
+    assertEquals("Full body content of the new blog post.", result.getBody());
+    assertNotNull(result.getPublishedAt());
+    assertNotNull(result.getAuthor());
+    assertEquals("Test Author", result.getAuthor().getName());
+  }
+
+  /** AC: createBlog makes the new blog appear in subsequent getPublishedBlogsPaged calls. */
+  @Test
+  void testCreateBlogAppearsInPublishedList() {
+    int before = blogService.getPublishedBlogsPaged(0, 100).getContent().size();
+    blogService.createBlog(buildValidRequest());
+    int after = blogService.getPublishedBlogsPaged(0, 100).getContent().size();
+
+    assertEquals(before + 1, after, "Published list should grow by 1 after createBlog");
+    boolean found =
+        blogService.getPublishedBlogsPaged(0, 100).getContent().stream()
+            .anyMatch(b -> "New Blog Title".equals(b.getTitle()));
+    assertTrue(found, "New blog should be visible in the published listing");
+  }
+
+  /** AC: createBlog with missing title throws IllegalArgumentException (validation). */
+  @Test
+  void testCreateBlogRejectsBlankTitle() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
+    CreateBlogRequestDto request =
+        new CreateBlogRequestDto("", "excerpt", "body", Arrays.asList("tag"), author, null);
+    assertThrows(IllegalArgumentException.class, () -> blogService.createBlog(request));
+  }
+
+  /** AC: createBlog with missing author name throws IllegalArgumentException (validation). */
+  @Test
+  void testCreateBlogRejectsMissingAuthorName() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("", null);
+    CreateBlogRequestDto request =
+        new CreateBlogRequestDto("Title", "excerpt", "body", Arrays.asList("tag"), author, null);
+    assertThrows(IllegalArgumentException.class, () -> blogService.createBlog(request));
   }
 }

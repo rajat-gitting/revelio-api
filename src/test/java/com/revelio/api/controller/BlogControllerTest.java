@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.model.Blog;
 import com.revelio.api.service.BlogService;
@@ -420,5 +421,53 @@ class BlogControllerTest {
       assertFalse(
           post.getBody().isBlank(), "Body should not be blank for post: " + post.getTitle());
     }
+  }
+
+  // ---- POST /blogs endpoint tests (CR-36) ----
+
+  private CreateBlogRequestDto buildCreateRequest() {
+    CreateBlogRequestDto.AuthorDto author =
+        new CreateBlogRequestDto.AuthorDto("Controller Author", null);
+    return new CreateBlogRequestDto(
+        "Controller Blog Title",
+        "Controller blog summary.",
+        "Controller blog body content.",
+        Arrays.asList("java", "spring"),
+        author,
+        null);
+  }
+
+  /** AC: POST /blogs returns HTTP 201 with the created blog in the ApiResponse envelope. */
+  @Test
+  void testCreateBlogReturns201WithCreatedBlog() {
+    ResponseEntity<ApiResponse<BlogResponseDto>> response =
+        blogController.createBlog(buildCreateRequest());
+
+    assertEquals(201, response.getStatusCode().value());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    BlogResponseDto dto = response.getBody().getData();
+    assertNotNull(dto);
+    assertEquals("Controller Blog Title", dto.getTitle());
+    assertEquals("Controller blog summary.", dto.getExcerpt());
+    assertEquals("Controller blog body content.", dto.getBody());
+    assertNotNull(dto.getId());
+    assertNotNull(dto.getPublishedAt());
+    assertNotNull(dto.getAuthor());
+    assertEquals("Controller Author", dto.getAuthor().getName());
+  }
+
+  /** AC: POST /blogs makes the new blog appear in subsequent GET /blogs calls. */
+  @Test
+  void testCreateBlogAppearsInBlogListing() {
+    int before = getPagedBlogs(blogController, 0, 100).getContent().size();
+    blogController.createBlog(buildCreateRequest());
+    int after = getPagedBlogs(blogController, 0, 100).getContent().size();
+
+    assertEquals(before + 1, after);
+    boolean found =
+        getPagedBlogs(blogController, 0, 100).getContent().stream()
+            .anyMatch(b -> "Controller Blog Title".equals(b.getTitle()));
+    assertTrue(found, "New blog should appear in listing after POST /blogs");
   }
 }
