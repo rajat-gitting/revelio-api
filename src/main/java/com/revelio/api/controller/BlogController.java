@@ -2,18 +2,23 @@ package com.revelio.api.controller;
 
 import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.service.BlogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -75,6 +80,20 @@ public class BlogController {
     log.debug("GET /api/blogs/filters");
     PostFiltersDto filters = blogService.getAvailableFilters();
     return ResponseEntity.ok(ApiResponse.ok(filters));
+  }
+
+  @PostMapping
+  @Operation(
+      summary = "Create a new blog post",
+      description =
+          "Creates a new published blog post. The backend assigns a new id, sets publishedAt to"
+              + " now, and sets published = true. Returns HTTP 201 with the created post.")
+  public ResponseEntity<ApiResponse<BlogResponseDto>> createBlog(
+      @Valid @RequestBody CreateBlogRequestDto request) {
+    log.debug("POST /api/blogs title={}", request.getTitle());
+    BlogResponseDto created = blogService.createBlog(request);
+    return ResponseEntity.created(URI.create("/api/blogs/" + created.getId()))
+        .body(ApiResponse.ok(created));
   }
 
   @GetMapping("/{id}")

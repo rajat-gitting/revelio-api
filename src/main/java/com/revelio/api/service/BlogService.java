@@ -1,13 +1,21 @@
 package com.revelio.api.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
 import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostFiltersDto.AuthorSummaryDto;
 import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.dto.PostSearchResultDto.AppliedFiltersDto;
+import com.revelio.api.exception.BadRequestException;
 import com.revelio.api.model.Blog;
 import com.revelio.api.model.Blog.Author;
+import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -16,20 +24,133 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BlogService {
 
-  private final List<Blog> blogRepository;
+  private static final Logger log = LoggerFactory.getLogger(BlogService.class);
+  private static final String DATA_FILE = "data/data.json";
+
+  private final CopyOnWriteArrayList<Blog> blogRepository;
+  private final ObjectMapper objectMapper;
+  private final String dataFilePath;
 
   public BlogService() {
-    this.blogRepository = seedData();
+    this.objectMapper = buildObjectMapper();
+    this.dataFilePath = DATA_FILE;
+    this.blogRepository = new CopyOnWriteArrayList<>(loadOrSeed(this.dataFilePath));
   }
 
+  /** Constructor for tests — injects a fixed list; no file I/O. */
   public BlogService(List<Blog> blogRepository) {
-    this.blogRepository = blogRepository != null ? blogRepository : new ArrayList<>();
+    this.objectMapper = buildObjectMapper();
+    this.dataFilePath = null;
+    this.blogRepository =
+        new CopyOnWriteArrayList<>(blogRepository != null ? blogRepository : List.of());
+  }
+
+  /** Package-private constructor for tests that want file I/O with a custom path. */
+  BlogService(List<Blog> blogRepository, String dataFilePath) {
+    this.objectMapper = buildObjectMapper();
+    this.dataFilePath = dataFilePath;
+    if (blogRepository != null) {
+      this.blogRepository = new CopyOnWriteArrayList<>(blogRepository);
+    } else {
+      this.blogRepository = new CopyOnWriteArrayList<>(loadOrSeed(dataFilePath));
+    }
+  }
+
+  private static ObjectMapper buildObjectMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());
+    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    return mapper;
+  }
+
+  private List<Blog> loadOrSeed(String filePath) {
+    File file = new File(filePath);
+    if (file.exists()) {
+      try {
+        List<Blog> loaded = objectMapper.readValue(file, new TypeReference<List<Blog>>() {});
+        log.info("Loaded {} blogs from {}", loaded.size(), filePath);
+        return new ArrayList<>(loaded);
+      } catch (IOException e) {
+        log.warn("Failed to read {}, falling back to seed data: {}", filePath, e.getMessage());
+      }
+    }
+    // File does not exist (or failed to parse) — seed from hardcoded data and write it
+    List<Blog> seeded = new ArrayList<>(seedData());
+    persistToFile(seeded, filePath);
+    return seeded;
+  }
+
+  private void persistToFile(List<Blog> blogs, String filePath) {
+    if (filePath == null) {
+      return;
+    }
+    try {
+      File file = new File(filePath);
+      file.getParentFile().mkdirs();
+      objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, blogs);
+      log.info("Persisted {} blogs to {}", blogs.size(), filePath);
+    } catch (IOException e) {
+      log.error("Failed to persist blogs to {}: {}", filePath, e.getMessage());
+    }
+  }
+
+  public BlogResponseDto createBlog(CreateBlogRequestDto request) {
+    if (request == null) {
+      throw new BadRequestException("Request must not be null");
+    }
+    if (request.getTitle() == null || request.getTitle().isBlank()) {
+      throw new BadRequestException("Title is required");
+    }
+    if (request.getExcerpt() == null || request.getExcerpt().isBlank()) {
+      throw new BadRequestException("Excerpt is required");
+    }
+    if (request.getBody() == null || request.getBody().isBlank()) {
+      throw new BadRequestException("Body is required");
+    }
+    if (request.getAuthor() == null
+        || request.getAuthor().getName() == null
+        || request.getAuthor().getName().isBlank()) {
+      throw new BadRequestException("Author name is required");
+    }
+
+    synchronized (blogRepository) {
+      long newId =
+          blogRepository.stream()
+                  .map(Blog::getId)
+                  .filter(id -> id != null)
+                  .mapToLong(Long::longValue)
+                  .max()
+                  .orElse(0L)
+              + 1L;
+
+      Author author = new Author(request.getAuthor().getName(), request.getAuthor().getAvatarUrl());
+
+      Blog blog =
+          new Blog(
+              newId,
+              request.getTitle(),
+              request.getExcerpt(),
+              request.getCoverImageUrl(),
+              author,
+              request.getTags() != null ? request.getTags() : new ArrayList<>(),
+              Instant.now(),
+              true,
+              request.getBody());
+
+      blogRepository.add(blog);
+      persistToFile(blogRepository, dataFilePath);
+
+      return BlogResponseDto.fromBlog(blog);
+    }
   }
 
   public List<Blog> getPublishedBlogs(int page, int size) {

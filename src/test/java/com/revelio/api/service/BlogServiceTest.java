@@ -2,17 +2,27 @@ package com.revelio.api.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.revelio.api.dto.BlogResponseDto;
+import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
+import com.revelio.api.exception.BadRequestException;
 import com.revelio.api.model.Blog;
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class BlogServiceTest {
+
+  @TempDir java.nio.file.Path tempDir;
 
   private BlogService blogService;
   private List<Blog> testBlogs;
@@ -401,9 +411,6 @@ class BlogServiceTest {
     assertTrue(card.isPublished());
   }
 
-  // ---- Tests for getPublishedBlogsPaged (AC-1, AC-2, AC-3) ----
-
-  /** AC-1: page and size params accepted; returns correct content slice. */
   @Test
   void testGetPublishedBlogsPagedReturnsCorrectContentSlice() {
     // testBlogs has 3 published posts; page=0 size=2 → 2 items
@@ -414,7 +421,6 @@ class BlogServiceTest {
     assertEquals(1L, result.getContent().get(1).getId());
   }
 
-  /** AC-2: response includes totalElements, totalPages, number, size. */
   @Test
   void testGetPublishedBlogsPagedIncludesPaginationMetadata() {
     // 3 published posts, page=0, size=2 → totalPages=2
@@ -426,7 +432,6 @@ class BlogServiceTest {
     assertEquals(2, result.getSize());
   }
 
-  /** AC-3: page >= totalPages returns empty content with valid metadata (not HTTP 400). */
   @Test
   void testGetPublishedBlogsPagedBeyondTotalPagesReturnsEmptyContentWithMetadata() {
     // 3 published posts, page=5, size=10 → way beyond last page
@@ -439,21 +444,107 @@ class BlogServiceTest {
     assertEquals(10, result.getSize());
   }
 
-  /** size=0 must be rejected (size must be between 1 and 100). */
   @Test
   void testGetPublishedBlogsPagedThrowsForZeroSize() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 0));
   }
 
-  /** size=101 must be rejected. */
   @Test
   void testGetPublishedBlogsPagedThrowsForSizeOver100() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(0, 101));
   }
 
-  /** page=-1 must be rejected. */
   @Test
   void testGetPublishedBlogsPagedThrowsForNegativePage() {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(-1, 10));
+  }
+
+  private CreateBlogRequestDto buildValidRequest() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
+    return new CreateBlogRequestDto(
+        "New Blog Title",
+        "A short summary of the blog.",
+        "Full body content of the new blog post.",
+        Arrays.asList("tag1", "tag2"),
+        author,
+        null);
+  }
+
+  @Test
+  void testCreateBlogPersistsToDataJsonFile() throws Exception {
+    String filePath = tempDir.resolve("data.json").toString();
+    BlogService service = new BlogService(new ArrayList<>(testBlogs), filePath);
+
+    service.createBlog(buildValidRequest());
+
+    File file = new File(filePath);
+    assertTrue(file.exists(), "data.json should be created after createBlog");
+
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());
+    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    List<Blog> persisted = mapper.readValue(file, new TypeReference<List<Blog>>() {});
+    boolean found =
+        persisted.stream().anyMatch(b -> "New Blog Title".equals(b.getTitle()) && b.isPublished());
+    assertTrue(found, "Newly created blog should be persisted in data.json");
+  }
+
+  @Test
+  void testBlogServiceLoadsFromDataJsonOnStartup() throws Exception {
+    String filePath = tempDir.resolve("data.json").toString();
+
+    // First service writes seed data to the file
+    BlogService firstService = new BlogService(null, filePath);
+    int seedCount = firstService.getPublishedBlogs(0, 100).size();
+    assertTrue(seedCount > 0, "Seed data should produce at least one blog");
+
+    // Second service loads from the file
+    BlogService secondService = new BlogService(null, filePath);
+    List<Blog> loaded = secondService.getPublishedBlogs(0, 100);
+    assertEquals(seedCount, loaded.size(), "Second service should load same blogs from data.json");
+  }
+
+  @Test
+  void testCreateBlogAssignsCorrectIdAndFields() {
+    // testBlogs max id is 5
+    BlogResponseDto result = blogService.createBlog(buildValidRequest());
+
+    assertNotNull(result);
+    assertEquals(6L, result.getId(), "New id should be max(existing ids) + 1 = 5 + 1 = 6");
+    assertEquals("New Blog Title", result.getTitle());
+    assertEquals("A short summary of the blog.", result.getExcerpt());
+    assertEquals("Full body content of the new blog post.", result.getBody());
+    assertNotNull(result.getPublishedAt());
+    assertNotNull(result.getAuthor());
+    assertEquals("Test Author", result.getAuthor().getName());
+  }
+
+  @Test
+  void testCreateBlogAppearsInPublishedList() {
+    int before = blogService.getPublishedBlogsPaged(0, 100).getContent().size();
+    blogService.createBlog(buildValidRequest());
+    int after = blogService.getPublishedBlogsPaged(0, 100).getContent().size();
+
+    assertEquals(before + 1, after, "Published list should grow by 1 after createBlog");
+    boolean found =
+        blogService.getPublishedBlogsPaged(0, 100).getContent().stream()
+            .anyMatch(b -> "New Blog Title".equals(b.getTitle()));
+    assertTrue(found, "New blog should be visible in the published listing");
+  }
+
+  @Test
+  void testCreateBlogRejectsBlankTitle() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
+    CreateBlogRequestDto request =
+        new CreateBlogRequestDto("", "excerpt", "body", Arrays.asList("tag"), author, null);
+    assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
+  }
+
+  @Test
+  void testCreateBlogRejectsMissingAuthorName() {
+    CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("", null);
+    CreateBlogRequestDto request =
+        new CreateBlogRequestDto("Title", "excerpt", "body", Arrays.asList("tag"), author, null);
+    assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
   }
 }
