@@ -467,8 +467,6 @@ class BlogServiceTest {
     assertThrows(IllegalArgumentException.class, () -> blogService.getPublishedBlogsPaged(-1, 10));
   }
 
-  // ---- Tests for createBlog (CR-36 acceptance criteria) ----
-
   private CreateBlogRequestDto buildValidRequest() {
     CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
     return new CreateBlogRequestDto(
@@ -480,9 +478,6 @@ class BlogServiceTest {
         null);
   }
 
-  /**
-   * AC: On successful submission, the new blog is persisted to the backend's data/data.json file.
-   */
   @Test
   void testCreateBlogPersistsToDataJsonFile() throws Exception {
     String filePath = tempDir.resolve("data.json").toString();
@@ -502,7 +497,6 @@ class BlogServiceTest {
     assertTrue(found, "Newly created blog should be persisted in data.json");
   }
 
-  /** AC: The backend serves blogs from data/data.json (loading existing entries on startup). */
   @Test
   void testBlogServiceLoadsFromDataJsonOnStartup() throws Exception {
     String filePath = tempDir.resolve("data.json").toString();
@@ -518,10 +512,6 @@ class BlogServiceTest {
     assertEquals(seedCount, loaded.size(), "Second service should load same blogs from data.json");
   }
 
-  /**
-   * AC: createBlog assigns max-id+1, sets published=true, sets publishedAt, and returns correct
-   * DTO.
-   */
   @Test
   void testCreateBlogAssignsCorrectIdAndFields() {
     // testBlogs max id is 5
@@ -537,7 +527,6 @@ class BlogServiceTest {
     assertEquals("Test Author", result.getAuthor().getName());
   }
 
-  /** AC: createBlog makes the new blog appear in subsequent getPublishedBlogsPaged calls. */
   @Test
   void testCreateBlogAppearsInPublishedList() {
     int before = blogService.getPublishedBlogsPaged(0, 100).getContent().size();
@@ -551,7 +540,6 @@ class BlogServiceTest {
     assertTrue(found, "New blog should be visible in the published listing");
   }
 
-  /** AC: createBlog with missing title throws BadRequestException (validation). */
   @Test
   void testCreateBlogRejectsBlankTitle() {
     CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
@@ -560,7 +548,6 @@ class BlogServiceTest {
     assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
   }
 
-  /** AC: createBlog with missing author name throws BadRequestException (validation). */
   @Test
   void testCreateBlogRejectsMissingAuthorName() {
     CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("", null);

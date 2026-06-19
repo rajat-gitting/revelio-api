@@ -102,10 +102,6 @@ public class BlogService {
     }
   }
 
-  /**
-   * Creates a new blog from the given request DTO, assigns a new id, sets publishedAt and
-   * published, appends to the in-memory list, persists to data/data.json, and returns the DTO.
-   */
   public BlogResponseDto createBlog(CreateBlogRequestDto request) {
     if (request == null) {
       throw new BadRequestException("Request must not be null");

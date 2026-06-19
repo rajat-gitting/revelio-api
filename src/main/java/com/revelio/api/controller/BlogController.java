@@ -90,7 +90,7 @@ public class BlogController {
               + " now, and sets published = true. Returns HTTP 201 with the created post.")
   public ResponseEntity<ApiResponse<BlogResponseDto>> createBlog(
       @Valid @RequestBody CreateBlogRequestDto request) {
-    log.debug("POST /api/blogs title={}", request == null ? null : request.getTitle());
+    log.debug("POST /api/blogs title={}", request.getTitle());
     BlogResponseDto created = blogService.createBlog(request);
     return ResponseEntity.created(URI.create("/api/blogs/" + created.getId()))
         .body(ApiResponse.ok(created));

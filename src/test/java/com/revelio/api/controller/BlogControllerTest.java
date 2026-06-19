@@ -423,8 +423,6 @@ class BlogControllerTest {
     }
   }
 
-  // ---- POST /blogs endpoint tests (CR-36) ----
-
   private CreateBlogRequestDto buildCreateRequest() {
     CreateBlogRequestDto.AuthorDto author =
         new CreateBlogRequestDto.AuthorDto("Controller Author", null);
@@ -437,7 +435,6 @@ class BlogControllerTest {
         null);
   }
 
-  /** AC: POST /blogs returns HTTP 201 with the created blog in the ApiResponse envelope. */
   @Test
   void testCreateBlogReturns201WithCreatedBlog() {
     ResponseEntity<ApiResponse<BlogResponseDto>> response =
@@ -457,7 +454,6 @@ class BlogControllerTest {
     assertEquals("Controller Author", dto.getAuthor().getName());
   }
 
-  /** AC: POST /blogs makes the new blog appear in subsequent GET /blogs calls. */
   @Test
   void testCreateBlogAppearsInBlogListing() {
     int before = getPagedBlogs(blogController, 0, 100).getContent().size();
