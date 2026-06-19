@@ -11,6 +11,7 @@ import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostFiltersDto.AuthorSummaryDto;
 import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.dto.PostSearchResultDto.AppliedFiltersDto;
+import com.revelio.api.exception.BadRequestException;
 import com.revelio.api.model.Blog;
 import com.revelio.api.model.Blog.Author;
 import java.io.File;
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Service;
 public class BlogService {
 
   private static final Logger log = LoggerFactory.getLogger(BlogService.class);
-  private static final String DATA_DIR = "data";
   private static final String DATA_FILE = "data/data.json";
 
   private final List<Blog> blogRepository;
@@ -108,21 +108,21 @@ public class BlogService {
    */
   public BlogResponseDto createBlog(CreateBlogRequestDto request) {
     if (request == null) {
-      throw new IllegalArgumentException("Request must not be null");
+      throw new BadRequestException("Request must not be null");
     }
     if (request.getTitle() == null || request.getTitle().isBlank()) {
-      throw new IllegalArgumentException("Title is required");
+      throw new BadRequestException("Title is required");
     }
     if (request.getExcerpt() == null || request.getExcerpt().isBlank()) {
-      throw new IllegalArgumentException("Excerpt is required");
+      throw new BadRequestException("Excerpt is required");
     }
     if (request.getBody() == null || request.getBody().isBlank()) {
-      throw new IllegalArgumentException("Body is required");
+      throw new BadRequestException("Body is required");
     }
     if (request.getAuthor() == null
         || request.getAuthor().getName() == null
         || request.getAuthor().getName().isBlank()) {
-      throw new IllegalArgumentException("Author name is required");
+      throw new BadRequestException("Author name is required");
     }
 
     long newId =

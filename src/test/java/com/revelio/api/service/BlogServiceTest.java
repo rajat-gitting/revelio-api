@@ -9,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.revelio.api.dto.BlogResponseDto;
 import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
+import com.revelio.api.exception.BadRequestException;
 import com.revelio.api.model.Blog;
 import java.io.File;
 import java.time.Instant;
@@ -550,21 +551,21 @@ class BlogServiceTest {
     assertTrue(found, "New blog should be visible in the published listing");
   }
 
-  /** AC: createBlog with missing title throws IllegalArgumentException (validation). */
+  /** AC: createBlog with missing title throws BadRequestException (validation). */
   @Test
   void testCreateBlogRejectsBlankTitle() {
     CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("Test Author", null);
     CreateBlogRequestDto request =
         new CreateBlogRequestDto("", "excerpt", "body", Arrays.asList("tag"), author, null);
-    assertThrows(IllegalArgumentException.class, () -> blogService.createBlog(request));
+    assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
   }
 
-  /** AC: createBlog with missing author name throws IllegalArgumentException (validation). */
+  /** AC: createBlog with missing author name throws BadRequestException (validation). */
   @Test
   void testCreateBlogRejectsMissingAuthorName() {
     CreateBlogRequestDto.AuthorDto author = new CreateBlogRequestDto.AuthorDto("", null);
     CreateBlogRequestDto request =
         new CreateBlogRequestDto("Title", "excerpt", "body", Arrays.asList("tag"), author, null);
-    assertThrows(IllegalArgumentException.class, () -> blogService.createBlog(request));
+    assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
   }
 }
