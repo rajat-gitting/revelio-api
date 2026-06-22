@@ -11,7 +11,9 @@ import com.revelio.api.dto.PostFiltersDto;
 import com.revelio.api.dto.PostFiltersDto.AuthorSummaryDto;
 import com.revelio.api.dto.PostSearchResultDto;
 import com.revelio.api.dto.PostSearchResultDto.AppliedFiltersDto;
+import com.revelio.api.dto.UpdateBlogRequestDto;
 import com.revelio.api.exception.BadRequestException;
+import com.revelio.api.exception.ResourceNotFoundException;
 import com.revelio.api.model.Blog;
 import com.revelio.api.model.Blog.Author;
 import java.io.File;
@@ -149,6 +151,52 @@ public class BlogService {
       blogRepository.add(blog);
       persistToFile(blogRepository, dataFilePath);
 
+      return BlogResponseDto.fromBlog(blog);
+    }
+  }
+
+  public BlogResponseDto updateBlog(Long id, UpdateBlogRequestDto dto) {
+    if (id == null) {
+      throw new BadRequestException("Blog id must not be null");
+    }
+    if (dto == null) {
+      throw new BadRequestException("Request must not be null");
+    }
+
+    synchronized (blogRepository) {
+      Blog blog =
+          blogRepository.stream()
+              .filter(b -> b.getId() != null && b.getId().equals(id))
+              .findFirst()
+              .orElseThrow(() -> new ResourceNotFoundException("Blog not found with id: " + id));
+
+      if (dto.getTitle() != null) {
+        blog.setTitle(dto.getTitle());
+      }
+      if (dto.getExcerpt() != null) {
+        blog.setExcerpt(dto.getExcerpt());
+      }
+      if (dto.getBody() != null) {
+        blog.setBody(dto.getBody());
+      }
+      if (dto.getTags() != null) {
+        blog.setTags(dto.getTags());
+      }
+      if (dto.getCoverImageUrl() != null) {
+        blog.setCoverImageUrl(dto.getCoverImageUrl());
+      }
+      if (dto.getAuthor() != null) {
+        if (blog.getAuthor() == null) {
+          blog.setAuthor(new Author(dto.getAuthor().getName(), dto.getAuthor().getAvatarUrl()));
+        } else {
+          blog.getAuthor().setName(dto.getAuthor().getName());
+          if (dto.getAuthor().getAvatarUrl() != null) {
+            blog.getAuthor().setAvatarUrl(dto.getAuthor().getAvatarUrl());
+          }
+        }
+      }
+
+      persistToFile(blogRepository, dataFilePath);
       return BlogResponseDto.fromBlog(blog);
     }
   }

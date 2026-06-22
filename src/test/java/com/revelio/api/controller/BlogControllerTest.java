@@ -6,6 +6,8 @@ import com.revelio.api.dto.ApiResponse;
 import com.revelio.api.dto.BlogResponseDto;
 import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
+import com.revelio.api.dto.UpdateBlogRequestDto;
+import com.revelio.api.exception.ResourceNotFoundException;
 import com.revelio.api.model.Blog;
 import com.revelio.api.service.BlogService;
 import java.time.Instant;
@@ -447,5 +449,66 @@ class BlogControllerTest {
         getPagedBlogs(blogController, 0, 100).getContent().stream()
             .anyMatch(b -> "Controller Blog Title".equals(b.getTitle()));
     assertTrue(found, "New blog should appear in listing after POST /blogs");
+  }
+
+  // -------------------------------------------------------------------------
+  // PUT /blogs/{id} (updateBlog) tests
+  // -------------------------------------------------------------------------
+
+  @Test
+  void testUpdateBlogReturns200WithUpdatedFields() {
+    UpdateBlogRequestDto request =
+        UpdateBlogRequestDto.builder().title("Updated Controller Title").build();
+
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = blogController.updateBlog(1L, request);
+
+    assertEquals(200, response.getStatusCode().value());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    BlogResponseDto dto = response.getBody().getData();
+    assertNotNull(dto);
+    assertEquals(1L, dto.getId());
+    assertEquals("Updated Controller Title", dto.getTitle());
+  }
+
+  @Test
+  void testUpdateBlogThrows404ForNonExistentId() {
+    UpdateBlogRequestDto request = UpdateBlogRequestDto.builder().title("X").build();
+    assertThrows(ResourceNotFoundException.class, () -> blogController.updateBlog(999L, request));
+  }
+
+  @Test
+  void testUpdateBlogReflectsChangesInListing() {
+    UpdateBlogRequestDto request =
+        UpdateBlogRequestDto.builder().title("Listing Reflected Title").build();
+    blogController.updateBlog(1L, request);
+
+    boolean found =
+        getPagedBlogs(blogController, 0, 100).getContent().stream()
+            .anyMatch(b -> "Listing Reflected Title".equals(b.getTitle()));
+    assertTrue(found, "Updated title should be visible in listing after PUT /blogs/{id}");
+  }
+
+  @Test
+  void testUpdateBlogPreservesOmittedFields() {
+    // Only send title; excerpt for blog 1 should remain "First excerpt"
+    UpdateBlogRequestDto request =
+        UpdateBlogRequestDto.builder().title("Only Title Changed").build();
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = blogController.updateBlog(1L, request);
+
+    BlogResponseDto dto = response.getBody().getData();
+    assertEquals("Only Title Changed", dto.getTitle());
+    assertEquals("First excerpt", dto.getExcerpt());
+  }
+
+  @Test
+  void testUpdateBlogResponseEnvelopeIsCorrect() {
+    UpdateBlogRequestDto request = UpdateBlogRequestDto.builder().title("Envelope Test").build();
+    ResponseEntity<ApiResponse<BlogResponseDto>> response = blogController.updateBlog(1L, request);
+
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().isSuccess());
+    assertEquals("OK", response.getBody().getMessage());
+    assertNotNull(response.getBody().getTimestamp());
   }
 }

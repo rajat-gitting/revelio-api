@@ -9,7 +9,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.revelio.api.dto.BlogResponseDto;
 import com.revelio.api.dto.CreateBlogRequestDto;
 import com.revelio.api.dto.PagedResponse;
+import com.revelio.api.dto.UpdateBlogRequestDto;
 import com.revelio.api.exception.BadRequestException;
+import com.revelio.api.exception.ResourceNotFoundException;
 import com.revelio.api.model.Blog;
 import java.io.File;
 import java.time.Instant;
@@ -546,5 +548,112 @@ class BlogServiceTest {
     CreateBlogRequestDto request =
         new CreateBlogRequestDto("Title", "excerpt", "body", Arrays.asList("tag"), author, null);
     assertThrows(BadRequestException.class, () -> blogService.createBlog(request));
+  }
+
+  // -------------------------------------------------------------------------
+  // updateBlog tests
+  // -------------------------------------------------------------------------
+
+  @Test
+  void testUpdateBlogPatchesTitle() {
+    // Blog 1 is published; update its title only
+    UpdateBlogRequestDto dto = UpdateBlogRequestDto.builder().title("Updated Title").build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals("Updated Title", result.getTitle());
+    // other fields remain unchanged
+    assertEquals("First excerpt", result.getExcerpt());
+  }
+
+  @Test
+  void testUpdateBlogPatchesExcerptAndBody() {
+    UpdateBlogRequestDto dto =
+        UpdateBlogRequestDto.builder().excerpt("New excerpt").body("New body content").build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals("New excerpt", result.getExcerpt());
+    assertEquals("New body content", result.getBody());
+    assertEquals("First Post", result.getTitle()); // unchanged
+  }
+
+  @Test
+  void testUpdateBlogPatchesTags() {
+    UpdateBlogRequestDto dto =
+        UpdateBlogRequestDto.builder().tags(Arrays.asList("newTag1", "newTag2")).build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals(Arrays.asList("newTag1", "newTag2"), result.getTags());
+  }
+
+  @Test
+  void testUpdateBlogPatchesAuthorName() {
+    UpdateBlogRequestDto.AuthorDto authorDto =
+        UpdateBlogRequestDto.AuthorDto.builder().name("New Author Name").build();
+    UpdateBlogRequestDto dto = UpdateBlogRequestDto.builder().author(authorDto).build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertNotNull(result.getAuthor());
+    assertEquals("New Author Name", result.getAuthor().getName());
+  }
+
+  @Test
+  void testUpdateBlogPatchesCoverImageUrl() {
+    UpdateBlogRequestDto dto =
+        UpdateBlogRequestDto.builder().coverImageUrl("https://example.com/new.jpg").build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals("https://example.com/new.jpg", result.getCoverImageUrl());
+  }
+
+  @Test
+  void testUpdateBlogThrowsResourceNotFoundForUnknownId() {
+    UpdateBlogRequestDto dto = UpdateBlogRequestDto.builder().title("X").build();
+    assertThrows(ResourceNotFoundException.class, () -> blogService.updateBlog(999L, dto));
+  }
+
+  @Test
+  void testUpdateBlogReflectsInPublishedListing() {
+    UpdateBlogRequestDto dto = UpdateBlogRequestDto.builder().title("Reflected Update").build();
+    blogService.updateBlog(1L, dto);
+
+    boolean found =
+        blogService.getPublishedBlogsPaged(0, 100).getContent().stream()
+            .anyMatch(b -> "Reflected Update".equals(b.getTitle()));
+    assertTrue(found, "Updated title should be visible in published blog listing");
+  }
+
+  @Test
+  void testUpdateBlogOmittedFieldsRetainCurrentValues() {
+    // Only update title; excerpt, body, author, tags should remain
+    UpdateBlogRequestDto dto = UpdateBlogRequestDto.builder().title("Only Title Updated").build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals("Only Title Updated", result.getTitle());
+    assertEquals("First excerpt", result.getExcerpt());
+    assertNotNull(result.getAuthor());
+    assertEquals("John Doe", result.getAuthor().getName());
+    assertEquals(Arrays.asList("tech", "java"), result.getTags());
+  }
+
+  @Test
+  void testUpdateBlogReturnsUpdatedBlogResponseDto() {
+    UpdateBlogRequestDto dto =
+        UpdateBlogRequestDto.builder()
+            .title("Full Update Title")
+            .excerpt("Full Update Excerpt")
+            .body("Full update body")
+            .tags(Arrays.asList("updated"))
+            .author(UpdateBlogRequestDto.AuthorDto.builder().name("Updated Author").build())
+            .coverImageUrl("https://example.com/cover.jpg")
+            .build();
+    BlogResponseDto result = blogService.updateBlog(1L, dto);
+
+    assertEquals(1L, result.getId());
+    assertEquals("Full Update Title", result.getTitle());
+    assertEquals("Full Update Excerpt", result.getExcerpt());
+    assertEquals("Full update body", result.getBody());
+    assertEquals(Arrays.asList("updated"), result.getTags());
+    assertEquals("Updated Author", result.getAuthor().getName());
+    assertEquals("https://example.com/cover.jpg", result.getCoverImageUrl());
   }
 }
