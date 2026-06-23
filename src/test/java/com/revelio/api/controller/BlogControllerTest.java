@@ -452,7 +452,7 @@ class BlogControllerTest {
   }
 
   // -------------------------------------------------------------------------
-  // PATCH /blogs/{id} (updateBlog) tests
+  // PUT /blogs/{id} (updateBlog) tests
   // -------------------------------------------------------------------------
 
   @Test
@@ -486,7 +486,7 @@ class BlogControllerTest {
     boolean found =
         getPagedBlogs(blogController, 0, 100).getContent().stream()
             .anyMatch(b -> "Listing Reflected Title".equals(b.getTitle()));
-    assertTrue(found, "Updated title should be visible in listing after PATCH /blogs/{id}");
+    assertTrue(found, "Updated title should be visible in listing after PUT /blogs/{id}");
   }
 
   @Test
